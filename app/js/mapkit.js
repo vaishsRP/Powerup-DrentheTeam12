@@ -64,12 +64,12 @@ const MAPKIT = (() => {
   // ---------- real capaciteitskaart areas ----------
   function realPopup(p) {
     const mw = (v) => (v == null ? "–" : `${(+v).toFixed(1)} MW`);
-    const tn = (d) => `${t("cap" + (p[`tennet_code_${d}`] ?? 0))}${p[`tennet_solved_${d}`] ? `, ${t("tennet_solved").toLowerCase()} ${p[`tennet_solved_${d}`]}` : ""}`;
-    return `<h4>${p.name}</h4><table>
+    const tn = (d) => `${t("cap" + (p[`tennet_code_${d}`] ?? 0))}${p[`tennet_solved_${d}`] ? `. ${t("tennet_solved")} ${p[`tennet_solved_${d}`]}` : ""}`;
+    return `<h4>${p.name}</h4>${p.operator ? `<div class="pop-sub">${p.operator}</div>` : ""}<table>
       ${row(t("afname"), `${t("cap" + (p.code_afname ?? 0))}<br>${t("queue")} ${mw(p.queue_afname_mw)}, ${p.requests_afname ?? 0} ${t("requests")}`)}
       ${row(t("teruglevering"), `${t("cap" + (p.code_teruglevering ?? 0))}<br>${t("queue")} ${mw(p.queue_teruglevering_mw)}, ${p.requests_teruglevering ?? 0} ${t("requests")}`)}
       ${p.tennet_area ? row("TenneT", `${p.tennet_area}<br>${t("afname")}: ${tn("afname")}<br>${t("teruglevering")}: ${tn("teruglevering")}`) : ""}
-      ${p.operator ? row("", p.operator) : ""}</table>`;
+      </table>`;
   }
   function drawRealAreas(g, dir, opts = {}) {
     const fc = STORE.data.realAreas;

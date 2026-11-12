@@ -176,6 +176,9 @@ main { min-height: calc(100vh - 64px); }
 .leaflet-tooltip.yr::before { display: none; }
 .leaflet-popup-content-wrapper { border-radius: var(--r); box-shadow: var(--shadow); }
 .leaflet-popup-content { font-size: 13px; line-height: 1.5; min-width: 230px; }
+/* clicking an area focuses its SVG shape; no browser focus box around it */
+.leaflet-container path.leaflet-interactive:focus { outline: none; }
+.leaflet-popup-content .pop-sub { color: var(--muted); font-size: 12px; margin: -4px 0 6px; }
 .leaflet-popup-content h4 { margin: 0 0 6px; color: var(--ink); font-size: 14px; font-weight: 800; }
 .leaflet-popup-content table { width: 100%; border-collapse: collapse; }
 .leaflet-popup-content td { padding: 2px 0; vertical-align: top; }
