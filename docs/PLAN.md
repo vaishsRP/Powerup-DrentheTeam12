@@ -18,10 +18,10 @@
 
 **Honest connection estimate** (to be grounded by research): the feasible in-service year of the grid upgrade that relieves the bottleneck at the customer's station (from the Enexis and TenneT IP2026 tables, RESEARCH.md §9–10), plus waiting-list position and an uncertainty band from upgrade delays. Shown as a range with "why" and "what would make it sooner".
 
-**Open [DECIDE]:**
-- Who exactly is the customer persona for the demo? Proposal: a solar/battery developer (Drenthe's feed-in is full) **and** a business-park company (offtake).
-- Zoning: a simple flag or illustrative layer (real zoning data is complex), or roadmap only?
-- Who said this: the challenge owner? Write it in §12.
+**Defaults (change if the team disagrees):**
+- **Demo personas:** a solar/battery developer near Emmen (feed-in is full) **and** a company on a business park that needs more offtake capacity.
+- **Zoning:** a simple illustrative flag in the demo; real zoning data (Omgevingsloket) goes on the roadmap.
+- **Source:** the challenge owner or a key TenneT person (see §12).
 
 ## 1. Problem (one sentence)
 
@@ -225,7 +225,7 @@ Questions to ask:
 
 ## 12. Feedback log
 
-**Thu 12:56 (relayed by a teammate; source to confirm):**
+**Thu 12:56 (from the challenge owner / a key TenneT person, relayed by a teammate):**
 - The core issue: grid **customers** don't know what's going on.
 - Wanted: a **project planning map** that helps customers understand **where and when their project can move forward and what to do next**.
 - Questions it should answer:
