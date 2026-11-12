@@ -11,7 +11,7 @@ window.APP = {
     lang: "nl",              // "nl" | "en"
     upgradeYears: {},        // overrides of upgrade in-service years, e.g. { "veenoord-boerdijk": 2031 } (delay ripple)
     measures: [],            // e.g. [{ type: "battery", areaId: "veenoord", mw: 10 }]
-    layers: { substations: true, cables: true, upgrades: true, plans: true },
+    layers: { substations: true, cables: false, upgrades: true, plans: true },
     selectedAreaId: null,
     selectedPlanId: null,
     tab: "location",         // "location" | "plans" | "load" | "scenarios"

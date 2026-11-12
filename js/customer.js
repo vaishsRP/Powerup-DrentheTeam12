@@ -5,6 +5,9 @@
   const MATURITY = ["idea", "planned", "permit", "contracted"];
   const APP_STATUS = { idea: "app_idea", planned: "app_planned", permit: "app_permit", contracted: "app_contracted" };
   const NEXT_STEP = { idea: "next_idea", planned: "next_planned", permit: "next_permit", contracted: "next_contracted" };
+  // Public cable data is TenneT HV only; it says little about the connection to a project.
+  // Keep the row hidden until we have designed the infrastructure view properly.
+  const SHOW_CABLE = false;
 
   const esc = (value) =>
     String(value ?? "").replace(/[&<>"']/g, (c) => ({
@@ -124,7 +127,7 @@
   function renderInfrastructure(plan, area, state) {
     const estimate = ENGINE.connectionEstimate(plan.id, state);
     const station = nearestStation(plan);
-    const cable = nearestCable(plan);
+    const cable = SHOW_CABLE ? nearestCable(plan) : null;
     const blockingId = estimate.blockingUpgradeId;
     const upgrades = ENGINE.upgradesIn(area.id).sort((a, b) => {
       if (a.id === blockingId) return -1;
@@ -151,20 +154,22 @@
       rows.push(`<p class="muted">${t("no_substation_data")}</p>`);
     }
 
-    if (cable) {
-      const props = cable.feature.properties || {};
-      rows.push(
-        infraRow(
-          t("cable"),
-          `${t("cable")} ${props.NETSCHAKELID || ""}`,
-          `${cable.distance.toFixed(1)} ${t("distance_km")}`,
-          `${props.SPANNINGSNIVEAU || ""}`,
-          cableStatus(cable.feature),
-          t("tbc_grid_operator")
-        )
-      );
-    } else {
-      rows.push(`<p class="muted">${t("no_cable_data")}</p>`);
+    if (SHOW_CABLE) {
+      if (cable) {
+        const props = cable.feature.properties || {};
+        rows.push(
+          infraRow(
+            t("cable"),
+            `${t("cable")} ${props.NETSCHAKELID || ""}`,
+            `${cable.distance.toFixed(1)} ${t("distance_km")}`,
+            `${props.SPANNINGSNIVEAU || ""}`,
+            cableStatus(cable.feature),
+            t("tbc_grid_operator")
+          )
+        );
+      } else {
+        rows.push(`<p class="muted">${t("no_cable_data")}</p>`);
+      }
     }
 
     for (const upgrade of upgrades) {

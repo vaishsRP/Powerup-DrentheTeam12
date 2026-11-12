@@ -303,7 +303,7 @@
       pt(`border:3px dashed ${C.blue};background:#fff`, tm("planned")) +
       pt(`border:3px dashed ${C.no_solution};background:#fff`, tm("at_risk")) +
       pt(`border:3px solid ${C.room}`, tm("in_service")) +
-      pt(`border:2px solid #1f6f8b`, tm("cable")) +
+      (APP.state.layers?.cables !== false ? pt(`border:2px solid #1f6f8b`, tm("cable")) : "") +
       (zoom() < Z_DETAILS ? `<div class="hint">${tm("zoom_hint")}</div>` : "");
   }
 
