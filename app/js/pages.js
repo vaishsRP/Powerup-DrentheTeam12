@@ -113,7 +113,6 @@ const ProjectsPage = {
     MAPKIT.drawOrders(g, sim, { mineOnly: true, onClick: (o) => (location.hash = `#/klant/project/${o.id}`) });
     const mine = ENGINE.orders().filter((o) => o.mine);
     if (mine.length) map.fitBounds(L.latLngBounds(mine.map((o) => [o.lat, o.lon])).pad(0.6), { maxZoom: 11 });
-    MAPKIT.legend(map, MAPKIT.legendReal(true), "topright");
     return () => map.remove();
   },
 };
@@ -192,7 +191,6 @@ const ProjectPage = {
     MAPKIT.pin(g, o.lat, o.lon, `<b>${esc(title(o))}</b><br>${ENGINE.oMW(o)} MW`);
     // the map can't be panned, so leave room for the labels on both sides
     map.fitBounds(L.latLngBounds(pts).pad(0.15), { maxZoom: 12, paddingTopLeft: [150, 30], paddingBottomRight: [180, 30] });
-    MAPKIT.legend(map, MAPKIT.legendReal(true), "topright");
     return () => map.remove();
   },
 };
@@ -235,7 +233,6 @@ const NewPage = {
     const map = MAPKIT.create(root.querySelector("#map")), g = L.layerGroup().addTo(map), mk = L.layerGroup().addTo(map);
     MAPKIT.drawRealAreas(g, this.form.category === "solar" ? "teruglevering" : "afname", { subtle: true });
     g.eachLayer((l) => l.eachLayer?.((x) => { x.unbindPopup(); x.on("click", (e) => pick(e.latlng)); }));
-    MAPKIT.legend(map, MAPKIT.legendReal(true), "topright");
     const drawPin = () => { mk.clearLayers(); if (this.form.lat != null) MAPKIT.pin(mk, this.form.lat, this.form.lon); };
     const pick = (ll) => { if (!ENGINE.areaAt(ll.lat, ll.lng)) return; this.form.lat = +ll.lat.toFixed(4); this.form.lon = +ll.lng.toFixed(4); drawPin(); renderForm(); };
     map.on("click", (e) => pick(e.latlng));

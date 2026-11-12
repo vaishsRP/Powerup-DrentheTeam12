@@ -55,7 +55,7 @@ Model (docs/PLAN.md §6): load = base × (1+growth)^(year−2026) + Σ plan MW �
 
 | File | Shape | Real or illustrative |
 |---|---|---|
-| `areas.geojson` | Features with `properties: { id, name, station, base_offtake_mw, cap_offtake_mw, base_feed_in_mw, cap_feed_in_mw, growth_offtake, growth_feed_in, demo }` | Shapes: Voronoi around real TenneT stations, clipped to real Drenthe border. **MW illustrative.** |
+| `areas.geojson` | Features with `properties: { id, name, station, base_offtake_mw, cap_offtake_mw, base_feed_in_mw, cap_feed_in_mw, growth_offtake, growth_feed_in, demo }` | Shapes: Voronoi around real TenneT stations, clipped to real Drenthe border. **MW illustrative.** The 2026 loads (`base_*_mw`) are calibrated to the real capaciteitskaart status of the supply areas inside each cell by `scripts/calibrate_areas.py` (status pattern real, MW not). The Projection map is drawn on the real supply-area shapes: each starts from its real status today and moves with its station area's modelled change. |
 | `upgrades.json` | `[{ id, area_id, title_nl, title_en, year_desired, year_feasible, lead_years, kind, mw_added_offtake, mw_added_feed_in, source_document, years_verified }]` | **Years real** (Enexis IP2026, RESEARCH.md §9; `years_verified` = ✅). MW illustrative. |
 | `plans.json` | Plan cards per DATA-SCHEMA.md, plus `area_id` (pre-computed) | Illustrative ("Demo · fictieve gegevens") |
 | `data/drenthe-substations-osm.json` | Existing 110/220 kV substations (points) | Real (OpenStreetMap, ODbL) |

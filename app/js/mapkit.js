@@ -81,18 +81,61 @@ const MAPKIT = (() => {
       ${p.tennet_area ? row("TenneT", `${p.tennet_area}<br>${t("afname")}: ${tn("afname")}<br>${t("teruglevering")}: ${tn("teruglevering")}`) : ""}
       </table>`;
   }
+  // the capaciteitskaart leaves small parts of Drenthe without a supply area: show them grey, not as empty white
+  const drawGaps = (g, subtle) => STORE.data.gaps &&
+    L.geoJSON(STORE.data.gaps, { pane: "areas", interactive: false, style: { stroke: false, fillColor: COL.nodata, fillOpacity: subtle ? 0.35 : 0.6 } }).addTo(g);
   function drawRealAreas(g, dir, opts = {}) {
     const fc = STORE.data.realAreas;
     if (!fc) return false;
-    // the capaciteitskaart leaves small parts of Drenthe without a supply area: show them grey, not as empty white
-    if (STORE.data.gaps) L.geoJSON(STORE.data.gaps, { pane: "areas", interactive: false, style: { stroke: false, fillColor: COL.nodata, fillOpacity: opts.subtle ? 0.35 : 0.6 } }).addTo(g);
+    drawGaps(g, opts.subtle);
     L.geoJSON(fc, { pane: "areas", style: (f) => ({ weight: 0.8, color: "#fff", fillColor: CODE[ENGINE.ckCode(f.properties, dir)], fillOpacity: opts.subtle ? 0.32 : 0.62 }),
       onEachFeature: (f, l) => l.bindPopup(realPopup(f.properties)) }).addTo(g);
     return true;
   }
 
-  // ---------- projected areas (register) ----------
+  // ---------- projection ----------
+  // Drawn on the real capaciteitskaart shapes so it reads like the Today map. Each real supply area starts from its
+  // real status today and moves up or down with the modelled change (growth, upgrades, decisions) of the station
+  // area it lies in: projection 2026 = Today, later years show what changes.
+  const LVL = { room: 0, limited: 1, bottleneck: 2 }, CODE_LVL = [0, 1, 2, 2], LVL_CODE = [0, 1, 3];
+  let projOf = null; // real supply area -> station area, by majority of its outline points
+  function projArea(f) {
+    projOf ??= new Map();
+    if (!projOf.has(f)) {
+      const votes = {};
+      const rings = f.geometry.type === "Polygon" ? [f.geometry.coordinates[0]] : f.geometry.coordinates.map((p) => p[0]);
+      for (const r of rings) for (let i = 0; i < r.length; i += 3) { const id = ENGINE.areaAt(r[i][1], r[i][0]); if (id) votes[id] = (votes[id] || 0) + 1; }
+      projOf.set(f, Object.entries(votes).sort((a, b) => b[1] - a[1])[0]?.[0] || null);
+    }
+    return projOf.get(f);
+  }
+  function projCode(sim, f, dir, year) {
+    const today = ENGINE.ckCode(f.properties, dir), aid = projArea(f);
+    if (!aid) return today;
+    const d = LVL[ENGINE.areaStatus(sim, aid, dir, year).status] - LVL[ENGINE.areaStatus(sim, aid, dir, ENGINE.START).status];
+    const lvl = Math.min(2, Math.max(0, CODE_LVL[today] + d));
+    return lvl === CODE_LVL[today] ? today : LVL_CODE[lvl];
+  }
   function drawProjAreas(g, sim, dir, year, opts = {}) {
+    const fc = STORE.data.realAreas;
+    if (!fc) return drawProjCells(g, sim, dir, year, opts);
+    drawGaps(g, opts.subtle);
+    L.geoJSON(fc, { pane: "areas", style: (f) => ({ weight: 0.8, color: "#fff", fillColor: CODE[projCode(sim, f, dir, year)], fillOpacity: opts.subtle ? 0.32 : 0.62 }),
+      onEachFeature: (f, l) => {
+        const aid = projArea(f);
+        if (!aid) return;
+        if (opts.onClick) l.on("click", () => opts.onClick(aid));
+        else {
+          const s = ENGINE.areaStatus(sim, aid, dir, year);
+          l.bindPopup(`<h4>${f.properties.name}</h4><div class="pop-sub">${ENGINE.area(aid).name}</div><table>${row(`${t("view_proj")} ${year}`, t("cap" + projCode(sim, f, dir, year)))}${row(`${t("peak")} / ${t("capacity")}`, `${Math.round(s.load)} / ${Math.round(s.cap)} MW`)}</table>`);
+        }
+      } }).addTo(g);
+    // the station area that a click selects (simulator)
+    const sel = opts.selected && STORE.data.areas.features.find((f) => f.properties.id === opts.selected);
+    if (sel) L.geoJSON(sel, { pane: "lines", interactive: false, style: { color: COL.navy, weight: 3, fill: false } }).addTo(g);
+  }
+  // fallback without the real shapes: the simplified station areas themselves
+  function drawProjCells(g, sim, dir, year, opts = {}) {
     L.geoJSON(STORE.data.areas, { pane: "areas", style: (f) => {
         const s = ENGINE.areaStatus(sim, f.properties.id, dir, year);
         return { weight: f.properties.id === opts.selected ? 3 : 1, color: f.properties.id === opts.selected ? COL.navy : "#fff", fillColor: COL[s.status], fillOpacity: opts.subtle ? 0.3 : 0.6 };
@@ -205,7 +248,8 @@ const MAPKIT = (() => {
   }
   const sw = (color, text, op = 0.75) => `<div><span class="sw" style="background:${color};opacity:${op}"></span>${text}</div>`;
   const legendReal = (subtle) => `<section><b>${t("view_today")}: ${t("view_today_hint")}</b>` + [0, 1, 2, 3].map((c) => sw(CODE[c], t("cap" + c), subtle ? 0.5 : 0.8)).join("") + sw(COL.nodata, t("no_data"), subtle ? 0.5 : 0.8) + `</section>`;
-  const legendProj = () => `<section><b>${t("view_proj")}</b>` + ["room", "limited", "bottleneck"].map((k) => sw(COL[k], t(k), 0.8)).join("") + `</section>`;
+  // same categories as Today: the projection moves each real area along the capaciteitskaart scale
+  const legendProj = () => `<section><b>${t("view_proj")}: ${t("view_proj_legend")}</b>` + [0, 1, 2, 3].map((c) => sw(CODE[c], t("cap" + c), 0.8)).join("") + sw(COL.nodata, t("no_data"), 0.8) + `</section>`;
   const legendInfra = () => `<section><b>${t("l_infra")}</b>` +
     `<div><span class="pt" style="background:${COL.navy}"></span>${t("operational")}</div>` +
     `<div><span class="pt" style="border:3px dashed ${COL.build}"></span>${t("under_construction")}</div>` +
