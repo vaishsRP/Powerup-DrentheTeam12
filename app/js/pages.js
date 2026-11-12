@@ -190,7 +190,8 @@ const ProjectPage = {
         (r?.wait?.id === u.id ? `<span class="k">${t("affects")}</span>` : `<span class="q">${t("tbc")}</span>`), "right", [14, 0]);
     }
     MAPKIT.pin(g, o.lat, o.lon, `<b>${esc(title(o))}</b><br>${ENGINE.oMW(o)} MW`);
-    map.fitBounds(L.latLngBounds(pts).pad(0.5), { maxZoom: 12 });
+    // the map can't be panned, so leave room for the labels on both sides
+    map.fitBounds(L.latLngBounds(pts).pad(0.15), { maxZoom: 12, paddingTopLeft: [150, 30], paddingBottomRight: [180, 30] });
     MAPKIT.legend(map, MAPKIT.legendReal(true), "topright");
     return () => map.remove();
   },
@@ -274,7 +275,7 @@ const OverviewPage = {
     const map = MAPKIT.create(root.querySelector("#map"), { zoom: 9 }), g = L.layerGroup().addTo(map);
     let leg = null;
     // leave room for the floating toolbar (top) and the legend (bottom)
-    const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]], { paddingTopLeft: [10, 90], paddingBottomRight: [10, 40] }); }, 60);
+    const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]], { paddingTopLeft: [10, 90], paddingBottomRight: [10, 150] }); }, 60);
     const draw = () => {
       const s = STORE.state, sim = ENGINE.simulate(s.applied);
       g.clearLayers();
@@ -420,7 +421,7 @@ const SimPage = {
   mount(root) {
     const s = STORE.state, map = MAPKIT.create(root.querySelector("#map")), g = L.layerGroup().addTo(map);
     s.batMW ??= 20; // battery size for the next "place battery"
-    const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]]); }, 60);
+    const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]], { paddingTopLeft: [20, 20], paddingBottomRight: [20, 70] }); }, 60);
     MAPKIT.legend(map, MAPKIT.legendProj(), "bottomleft", { wide: true });
     const left = root.querySelector("#sim-left"), right = root.querySelector("#sim-right");
     const draw = () => {

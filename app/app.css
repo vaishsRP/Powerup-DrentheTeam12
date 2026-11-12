@@ -178,6 +178,9 @@ main { min-height: calc(100vh - 64px); }
 .leaflet-popup-content { font-size: 13px; line-height: 1.5; min-width: 230px; }
 /* clicking an area focuses its SVG shape; no browser focus box around it */
 .leaflet-container path.leaflet-interactive:focus { outline: none; }
+/* maps are fixed: a double-click must not select legend text */
+.leaflet-container { -webkit-user-select: none; user-select: none; }
+.leaflet-popup-content { -webkit-user-select: text; user-select: text; }
 .leaflet-popup-content .pop-sub { color: var(--muted); font-size: 12px; margin: -4px 0 6px; }
 .leaflet-popup-content h4 { margin: 0 0 6px; color: var(--ink); font-size: 14px; font-weight: 800; }
 .leaflet-popup-content table { width: 100%; border-collapse: collapse; }
