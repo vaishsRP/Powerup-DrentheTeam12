@@ -160,7 +160,7 @@ const ProjectPage = {
           <h2 class="section-title">${icon("calendar-clock")} ${t("history")}</h2>
           <ul class="timeline">${ev}${future}</ul>
         </div>
-        <div class="sticky"><div class="map" id="map" style="height:560px"></div><p class="map-caption">${t("tbc")}: ${lang() === "nl" ? "stippellijn en grijze labels" : "dotted line and grey labels"}.</p></div>
+        <div class="sticky"><div class="map" id="map" style="height:560px"></div><p class="map-caption">${t("tbc")}: ${lang() === "nl" ? "stippellijn en grijze labels" : "dotted line and grey labels"}.</p><p class="map-caption">${t("grid_note")}</p></div>
       </div></div>`;
   },
   mount(root, id) {
@@ -265,7 +265,7 @@ const OverviewPage = {
         <span class="seg" id="v-view"><button data-v="today">${t("view_today")}</button><button data-v="proj">${t("view_proj")}</button></span>
         <span class="yr" id="v-yr"><span class="muted">${t("view_proj")}</span><b id="yr-v"></b><input type="range" id="yr" min="2026" max="2035" step="1"></span>
         <span class="seg" id="v-dir"><button data-d="afname">${t("afname")}</button><button data-d="teruglevering">${t("teruglevering")}</button></span>
-        <span class="chips" id="v-layers">${["stations", "cables", "projects"].map((k) => `<button class="chip" data-l="${k}">${t("l_" + k)}</button>`).join("")}</span>
+        <span class="chips" id="v-layers">${["stations", "upgrades", "cables", "projects"].map((k) => `<button class="chip" data-l="${k}">${t("l_" + k)}</button>`).join("")}</span>
       </div>
       <div class="dash-map"><div class="map" id="map"></div></div></div>
       <aside class="dash-side" id="side"></aside></div>`;
@@ -273,17 +273,20 @@ const OverviewPage = {
   mount(root) {
     const map = MAPKIT.create(root.querySelector("#map"), { zoom: 9 }), g = L.layerGroup().addTo(map);
     let leg = null;
-    setTimeout(() => { map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]]); }, 60);
+    const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]]); }, 60);
     const draw = () => {
       const s = STORE.state, sim = ENGINE.simulate(s.applied);
       g.clearLayers();
       if (s.view === "today") MAPKIT.drawRealAreas(g, s.dir);
       else MAPKIT.drawProjAreas(g, sim, s.dir, s.year, { onClick: (id) => (location.hash = `#/planner/gebied/${id}`) });
       if (s.layers.cables) MAPKIT.drawLines(g, s.view === "today" ? 2026 : s.year);
-      if (s.layers.stations) { MAPKIT.drawStations(g); MAPKIT.drawUpgrades(g, s.applied, s.view === "today" ? 2026 : s.year); }
+      if (s.layers.stations) MAPKIT.drawStations(g);
+      if (s.layers.upgrades) MAPKIT.drawUpgrades(g, s.applied, s.view === "today" ? 2026 : s.year);
       if (s.layers.projects) MAPKIT.drawOrders(g, sim, { onClick: (o) => (location.hash = `#/planner/gebied/${o.area_id}`) });
       leg?.remove();
-      leg = MAPKIT.legend(map, (s.view === "today" ? MAPKIT.legendReal(false) : MAPKIT.legendProj()) + (s.layers.stations || s.layers.cables ? MAPKIT.legendInfra() : ""));
+      const infraOn = s.layers.stations || s.layers.upgrades || s.layers.cables;
+      leg = MAPKIT.legend(map, (s.view === "today" ? MAPKIT.legendReal(false) : MAPKIT.legendProj()) +
+        (infraOn ? MAPKIT.legendInfra() + (s.layers.cables ? `<div class="q">${t("grid_note")}</div>` : "") : ""));
       root.querySelectorAll("#v-view button").forEach((b) => b.classList.toggle("on", b.dataset.v === s.view));
       root.querySelectorAll("#v-dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === s.dir));
       root.querySelectorAll("#v-layers .chip").forEach((b) => b.classList.toggle("on", s.layers[b.dataset.l]));
@@ -296,7 +299,7 @@ const OverviewPage = {
     root.querySelectorAll("#v-layers .chip").forEach((b) => (b.onclick = () => { STORE.state.layers[b.dataset.l] = !STORE.state.layers[b.dataset.l]; draw(); }));
     root.querySelector("#yr").oninput = (e) => { STORE.state.year = +e.target.value; STORE.state.view = "proj"; draw(); };
     draw();
-    return () => map.remove();
+    return () => { clearTimeout(fit); map.remove(); };
   },
   side(sim) {
     const s = STORE.state, ids = STORE.data.areas.features.map((f) => f.properties.id);
@@ -332,8 +335,10 @@ const AreaPage = {
     }).join("");
     const ups = ENGINE.upgradesIn(id).map((u) => {
       const y = ENGINE.upYear(u, s.applied), dl = y - u.year_desired;
+      const affected = ENGINE.orders().filter((o) => o.area_id === id && ENGINE.oDir(o) === s.dir && o.year_needed <= y);
       return `<div class="upg"><b>${title(u)}</b><span class="delay ${dl > 0 ? "" : "ok"}">${dl > 0 ? t("delay_y", { n: dl }) : t("on_time_u")}</span>
-        <div class="sub">${t(ENGINE.upStatus(u, s.applied, 2026))}, ${t("desired")} ${u.year_desired}, ${t("feasible")} ${y}. ${esc(u[`space_${lang()}`] || "")}</div></div>`;
+        <div class="sub">${t(ENGINE.upStatus(u, s.applied, 2026))}, ${t("desired")} ${u.year_desired}, ${t("feasible")} ${y}. ${esc(u[`space_${lang()}`] || "")}</div>
+        ${affected.length ? `<div class="sub">${t("affected_projects")}: ${affected.slice(0, 3).map((o) => esc(title(o))).join(", ")}</div>` : ""}</div>`;
     }).join("") || `<p class="muted">–</p>`;
     const queue = ENGINE.orders().filter((o) => o.area_id === id).sort((a, b) => a.priority - b.priority || a.request_seq - b.request_seq).map((o) => {
       const r = sim.res[o.id];
@@ -411,7 +416,7 @@ const SimPage = {
   },
   mount(root) {
     const s = STORE.state, map = MAPKIT.create(root.querySelector("#map")), g = L.layerGroup().addTo(map);
-    setTimeout(() => { map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]]); }, 60);
+    const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]]); }, 60);
     MAPKIT.legend(map, MAPKIT.legendProj());
     const left = root.querySelector("#sim-left"), right = root.querySelector("#sim-right");
     const draw = () => {
@@ -468,7 +473,7 @@ const SimPage = {
       right.querySelector("#s-reset").onclick = () => { s.draft = JSON.parse(JSON.stringify(s.applied)); draw(); };
     };
     draw();
-    return () => map.remove();
+    return () => { clearTimeout(fit); map.remove(); };
   },
 };
 

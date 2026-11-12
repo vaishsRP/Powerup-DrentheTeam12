@@ -1,6 +1,7 @@
 # Regionale maatregelkaart: Team 12, PowerUp Drenthe hackathon
 
-> **Status (Thu 12 Nov, evening):** working static prototype. Customer journey, planning view and map layers are in place. Run `python -m http.server 8000` in the repo root and open http://localhost:8000.
+> **Status (Thu 12 Nov, evening):** the v2 app in `app/` is the demo surface: customer journey, planner overview, area detail and simulator, with real capacity-map and TenneT grid data.
+> Run `python -m http.server 8000` in the repo root and open **http://localhost:8000/app/**. The old prototype is still available at `http://localhost:8000/?legacy=1`.
 > Read this file first, then [`docs/PLAN.md`](docs/PLAN.md) and [`docs/CONTRACT.md`](docs/CONTRACT.md). Claude Code users: your Claude reads [`CLAUDE.md`](CLAUDE.md) automatically.
 
 ## The hackathon in 30 seconds
@@ -66,7 +67,8 @@ docs/PLAN.md         ← full plan: scope, features, architecture, timeline, tas
 docs/RESEARCH.md     ← ground-reality research with sources (what exists, pain points, instruments, data)
 docs/DATA-SCHEMA.md  ← the "plan card": the shared intake format
 docs/CONTRACT.md     ← how the app fits together: state, engine, data files, who owns which file
-index.html, css/, js/ ← the web app (static page, plain JS + Leaflet + Chart.js)
+app/                 the v2 demo app (multi-page, plain JS + Leaflet + Chart.js)
+index.html, css/, js/  old prototype (legacy; /?legacy=1)
 scripts/             ← Python data pipeline (demo data, real capaciteitskaart fetch)
 data/                ← real open data (municipality borders, TenneT substations); data/app/ = app data
 ```
@@ -74,9 +76,11 @@ data/                ← real open data (municipality borders, TenneT substation
 ## Run the app
 
 ```
-python -m http.server 8000      # in the repo root, then open http://localhost:8000
+python -m http.server 8000      # in the repo root, then open http://localhost:8000/app/
 python scripts/build_demo_data.py   # rebuild data/app/ (needs: pip install shapely scipy numpy)
 ```
+
+The v2 app lives in `app/`. The root `index.html`, `css/` and `js/` are the old prototype; `/` redirects to `/app/`, and `/?legacy=1` opens the old app.
 
 ## Mini glossary (Dutch → English)
 

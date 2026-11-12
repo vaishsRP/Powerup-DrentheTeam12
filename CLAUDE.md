@@ -47,14 +47,15 @@ Two of the three teammates **do not speak Dutch**. When you summarise Dutch sour
 - TenneT palette: navy `#003584`, blue `#3C8CFA`, green `#33A92F`, warm grey `#F0ECEA`, orange `#FF6428`, yellow `#FAC850`. Font Arial/Helvetica.
 - Lucide icons, **no emoji**, no flashy gradients. It must read well in a 1080p screen recording.
 
-## Tech (decided Thu 14:10: simple static page instead of Vite + React)
+## Tech (v2 app in `app/` is the demo surface)
 
 - **Read `docs/CONTRACT.md` before writing code.** It defines the shared state, the engine functions, the data files and who owns which file.
-- One static page: `index.html` + `css/style.css` + `js/*.js` (plain JavaScript, no framework, no build step) + `data/app/*`. Leaflet 1.9.4 and Chart.js 4.4.1 from cdnjs. No backend.
-- Run: `python -m http.server 8000` in the repo root → http://localhost:8000
-- Data pipeline (Python): `scripts/build_demo_data.py` → `data/app/`; `scripts/fetch_capaciteitskaart.py` → `data/real/` (real capaciteitskaart areas).
+- Demo app: `app/index.html` + `app/app.css` + `app/js/*.js` (multi-page hash router, plain JavaScript, no framework, no build step) + `data/app/*` and `data/real/*`. Leaflet 1.9.4 and Chart.js 4.4.1 from cdnjs. No backend.
+- Run: `python -m http.server 8000` in the repo root → http://localhost:8000/app/
+- The root `index.html`, `css/` and `js/` are the old prototype; `/` redirects to `/app/`, and `/?legacy=1` opens the old app.
+- Data pipeline (Python): `scripts/build_demo_data.py` → `data/app/`; `scripts/fetch_capaciteitskaart.py` and `scripts/prepare_real_data.py` → `data/real/`.
 - Deployment: GitHub Pages from `main` / root.
-- Map data: `data/drenthe-municipalities.geojson` (CBS 2025 borders) and `data/drenthe-substations-osm.json` (real TenneT 110/220 kV stations). Station areas = nearest-station (Voronoi) approximation until the real capaciteitskaart areas are in.
+- Map data: real capaciteitskaart supply areas (`data/real/drenthe-supply-areas.geojson`), real TenneT HV lines/stations, and CBS/PDOK municipality borders.
 
 ## Working together in git
 

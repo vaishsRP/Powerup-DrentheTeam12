@@ -13,7 +13,14 @@ const MAPKIT = (() => {
   const noIcon = () => L.divIcon({ className: "", iconSize: [0, 0] });
 
   function create(el, opts = {}) {
-    const map = L.map(el, { zoomControl: true, scrollWheelZoom: opts.scroll ?? true }).setView(opts.center || [52.84, 6.6], opts.zoom || 9);
+    const map = L.map(el, {
+      zoomControl: true,
+      scrollWheelZoom: opts.scroll ?? true,
+      // Avoid zoom-transition callbacks firing after a page has been replaced.
+      zoomAnimation: false,
+      fadeAnimation: false,
+      markerZoomAnimation: false,
+    }).setView(opts.center || [52.84, 6.6], opts.zoom || 9);
     L.tileLayer("https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/grijs/EPSG:3857/{z}/{x}/{y}.png", {
       attribution: 'Kaart <a href="https://www.pdok.nl">PDOK</a> · CBS/PDOK · Capaciteitskaart Netbeheer Nederland · TenneT · Enexis IP2026 · © OpenStreetMap', maxZoom: 15,
     }).addTo(map);
@@ -136,7 +143,7 @@ const MAPKIT = (() => {
   const sw = (color, text, op = 0.75) => `<div><span class="sw" style="background:${color};opacity:${op}"></span>${text}</div>`;
   const legendReal = (subtle) => `<b>${t("view_today")}: ${t("view_today_hint")}</b>` + [0, 1, 2, 3].map((c) => sw(CODE[c], t("cap" + c), subtle ? 0.45 : 0.75)).join("");
   const legendProj = () => `<b>${t("view_proj")}</b>` + ["room", "limited", "bottleneck"].map((k) => sw(COL[k], t(k))).join("");
-  const legendInfra = () => `<b>${t("l_stations")}</b>` +
+  const legendInfra = () => `<b>${t("l_infra")}</b>` +
     `<div><span class="pt" style="background:${COL.navy}"></span>${t("operational")}</div>` +
     `<div><span class="pt" style="border:3px dashed ${COL.investigate}"></span>${t("under_construction")}</div>` +
     `<div><span class="pt" style="border:3px dashed ${COL.blue}"></span>${t("planned")}</div>` +

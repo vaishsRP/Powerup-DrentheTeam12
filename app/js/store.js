@@ -5,7 +5,7 @@ const STORE = {
   data: null,
   state: {
     lang: "nl", year: 2029, dir: "afname", view: "today",          // planner map: "today" (capaciteitskaart) | "proj" (register)
-    layers: { areas: true, stations: true, cables: true, projects: true },
+    layers: { areas: true, stations: true, upgrades: true, cables: true, projects: true },
     applied: { upgradeYears: {}, cancelled: [], batteries: [] },     // decisions in force
     draft: { upgradeYears: {}, cancelled: [], batteries: [] },       // simulator what-if
     userOrders: [], events: {}, simArea: null,
