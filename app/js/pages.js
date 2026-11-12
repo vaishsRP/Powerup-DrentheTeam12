@@ -300,7 +300,7 @@ const OverviewPage = {
       <aside class="dash-side" id="side"></aside></div>`;
   },
   mount(root) {
-    const map = MAPKIT.create(root.querySelector("#map"), { zoom: 9, popupTop: 125 }), g = L.layerGroup().addTo(map);
+    const map = MAPKIT.create(root.querySelector("#map"), { zoom: 9, popupTop: 125, interactive: true }), g = L.layerGroup().addTo(map);
     let leg = null;
     // leave room for the floating toolbar (top) and the legend (bottom)
     const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]], { paddingTopLeft: [10, 90], paddingBottomRight: [10, 150] }); }, 60);
@@ -546,7 +546,7 @@ const AreaPage = {
       options: { maintainAspectRatio: false, animation: false, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { family: "'Plus Jakarta Sans', Arial" } } } },
         scales: { y: { title: { display: true, text: "MW" }, beginAtZero: true, stacked: true, grid: { color: "#E6EEE5" } }, x: { stacked: true, grid: { display: false } } } },
     });
-    const map = MAPKIT.create(root.querySelector("#map"), { scroll: false }), g = L.layerGroup().addTo(map);
+    const map = MAPKIT.create(root.querySelector("#map"), { interactive: true, scroll: false }), g = L.layerGroup().addTo(map);
     const f = STORE.data.areas.features.find((x) => x.properties.id === id);
     MAPKIT.drawRealAreas(g, s.dir, { subtle: true });
     L.geoJSON(f, { pane: "lines", style: { color: MAPKIT.COL.navy, weight: 3, fill: false, dashArray: "6 4" }, interactive: false }).addTo(g);
@@ -585,7 +585,7 @@ const SimPage = {
       <aside id="sim-right"></aside></div>`;
   },
   mount(root) {
-    const s = STORE.state, map = MAPKIT.create(root.querySelector("#map")), g = L.layerGroup().addTo(map);
+    const s = STORE.state, map = MAPKIT.create(root.querySelector("#map"), { interactive: true }), g = L.layerGroup().addTo(map);
     s.batMW ??= 20; // battery size for the next "place battery"
     const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]], { paddingTopLeft: [20, 20], paddingBottomRight: [20, 70] }); }, 60);
     MAPKIT.legend(map, MAPKIT.legendProj(), "bottomleft", { wide: true });

@@ -20,8 +20,7 @@ const MAPKIT = (() => {
   // brand pin (the logo mark): teardrop in leaf green with a white bolt
   const BRAND_PIN = `<svg viewBox="0 0 24 32" aria-hidden="true"><path d="M12 .8C5.8.8.8 5.6.8 11.6c0 7.9 9.6 17.7 10.4 18.5a1.1 1.1 0 0 0 1.6 0c.8-.8 10.4-10.6 10.4-18.5C23.2 5.6 18.2.8 12 .8z" fill="${COL.leaf}" stroke="#fff" stroke-width="1.4"/><path d="M13.9 4.6 7.3 13.5h4.4l-1.5 8 6.5-9.2h-4.5z" fill="#fff"/></svg>`;
 
-  // grey veil outside Drenthe. Maps are fixed (see create()), so no zoom or pan limits are needed;
-  // maxBounds would even fight the popup snap-back.
+  // grey veil outside Drenthe (pan limits for planner maps are set in create())
   function lock(map) {
     const ol = STORE.data.outline?.features?.[0]?.geometry;
     if (ol) {
@@ -39,16 +38,21 @@ const MAPKIT = (() => {
     return adjustPan.apply(this, arguments);
   };
 
+  // Customer maps are fixed (only clicks; each page sets its own view). Planner maps pass interactive: true:
+  // zoom and pan, kept inside Drenthe. scroll: false keeps the mouse wheel for scrolling the page.
   function create(el, opts = {}) {
-    // Fixed maps: no dragging or zooming by the user, only clicks. Each page sets its own view.
+    const on = !!opts.interactive;
     const map = L.map(el, {
       zoomControl: false,
-      dragging: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
+      dragging: on,
+      scrollWheelZoom: on && opts.scroll !== false,
+      doubleClickZoom: on,
       boxZoom: false,
-      touchZoom: false,
-      keyboard: false,
+      touchZoom: on,
+      keyboard: on,
+      zoomDelta: 0.5,
+      maxBounds: on ? DRENTHE.pad(0.25) : null,
+      maxBoundsViscosity: on ? 1.0 : 0,
       popupTop: opts.popupTop,
       zoomSnap: 0.25, // fixed views: fit each page's area snugly instead of jumping a whole zoom level
       // Avoid zoom-transition callbacks firing after a page has been replaced.
@@ -59,10 +63,17 @@ const MAPKIT = (() => {
     L.tileLayer("https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/grijs/EPSG:3857/{z}/{x}/{y}.png", {
       attribution: 'Kaart <a href="https://www.pdok.nl">PDOK</a> · CBS/PDOK · Capaciteitskaart Netbeheer Nederland · TenneT · Enexis IP2026 · © OpenStreetMap', maxZoom: 15,
     }).addTo(map);
-    // A popup near the edge may pan the map to fit; put the view back when it closes.
-    let home = null;
-    map.on("moveend", () => { if (map._mapPane && map._containerId && !map._popup?.isOpen()) home = { c: map.getCenter(), z: map.getZoom() }; });
-    map.on("popupclose", () => { if (home && map._mapPane && map._containerId) map.setView(home.c, home.z, { animate: false }); });
+    if (on) {
+      L.control.zoom({ position: "bottomright" }).addTo(map);
+      // never zoomed out much beyond the whole province
+      const minZ = () => { if (map._mapPane && map._containerId && map._loaded) map.setMinZoom(map.getBoundsZoom(DRENTHE) - 0.5); };
+      setTimeout(minZ, 100); map.on("resize", minZ);
+    } else {
+      // A popup near the edge may pan a fixed map to fit; put the view back when it closes.
+      let home = null;
+      map.on("moveend", () => { if (map._mapPane && map._containerId && !map._popup?.isOpen()) home = { c: map.getCenter(), z: map.getZoom() }; });
+      map.on("popupclose", () => { if (home && map._mapPane && map._containerId) map.setView(home.c, home.z, { animate: false }); });
+    }
     map.createPane("areas").style.zIndex = 400;
     map.createPane("veil").style.zIndex = 410;
     map.createPane("lines").style.zIndex = 430;
