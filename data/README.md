@@ -6,6 +6,9 @@
 | `drenthe-substations-osm.json` | 18 named high-voltage substations (≥110 kV) in and around Drenthe, operator TenneT: name, voltages, lat/lon, OSM id | © OpenStreetMap contributors, ODbL. Attribution required: "© OpenStreetMap contributors" | 2026-11-12 |
 | `real/tennet-cables.geojson` | 457 underground high-voltage cable segments around Drenthe: status, voltage, cable id, construction year | TenneT (TenneT_Assets_Hoogspanning). Attribution: "Bron: TenneT" | 2026-11-12 |
 | `real/osm-construction.geojson` | Substations under construction (empty when Overpass is unavailable) | © OpenStreetMap contributors, ODbL | 2026-11-12 |
+| `real/drenthe-supply-areas.geojson` | 34 regional supply areas in Drenthe with capaciteitskaart status codes (0–3) for offtake and feed-in, queue MW and requests, plus the TenneT area status and "solved in" year. Made by `scripts/prepare_real_data.py` | Capaciteitskaart, Netbeheer Nederland (ArcGIS services behind capaciteitskaart.netbeheernederland.nl). Attribution: "Bron: Capaciteitskaart, Netbeheer Nederland" | 2026-11-12 |
+| `real/drenthe-hv-lines.geojson` | TenneT high-voltage lines in and around Drenthe, merged into one overhead and one underground geometry. Made by `scripts/prepare_real_data.py` | TenneT (TenneT_Assets_Hoogspanning). Attribution: "Bron: TenneT" | 2026-11-12 |
+| `real/drenthe-hv-stations.geojson` | 40 TenneT station points (centroids) in and around Drenthe. Made by `scripts/prepare_real_data.py` | TenneT (TenneT_Assets_Hoogspanning). Attribution: "Bron: TenneT" | 2026-11-12 |
 
 Notes:
 - *Zeijerveen* (Assen) appears twice: once as the 220 kV yard and once as the 110 kV yard of the same site.
