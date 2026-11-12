@@ -19,6 +19,8 @@
       no_upgrade: "Geen netuitbreiding gepland", plans: "Projecten", demo: "MW: demo · fictieve gegevens", // NL?
       sources: "Jaartallen: Enexis IP2026 / TenneT IP2026",
       zoom_hint: "Zoom in voor stations, projecten en MW per gebied", connect: "aansluiting", on_time: "op tijd", // NL?
+      cable: "Hoogspanningskabel", cable_id: "Kabel-ID", installed_underground: "Ondergronds geïnstalleerd", // NL?
+      operational: "Operationeel", year: "Jaar", tbc_grid_operator: "Te bevestigen door de netbeheerder.", // NL?
     },
     en: {
       congestion: "Grid congestion", infrastructure: "Infrastructure",
@@ -32,6 +34,8 @@
       no_upgrade: "No grid upgrade planned", plans: "Projects", demo: "MW: demo · illustrative data",
       sources: "Years: Enexis IP2026 / TenneT IP2026",
       zoom_hint: "Zoom in for stations, projects and MW per area", connect: "connection", on_time: "on time",
+      cable: "High-voltage cable", cable_id: "Cable ID", installed_underground: "Installed underground",
+      operational: "Operational", year: "Year", tbc_grid_operator: "To be confirmed by the grid operator.",
     },
   };
   const tm = (k) => TXT[APP.state.lang]?.[k] ?? TXT.nl[k] ?? k;
@@ -62,7 +66,10 @@
     #legend .pt { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; box-sizing: border-box; }
   </style>`);
 
-  let map, areaLayer, stationLayer, upgradeLayer, lineLayer, planLayer, areaLabelLayer;
+  let map, areaLayer, stationLayer, upgradeLayer, lineLayer, planLayer, areaLabelLayer, highlightLayer;
+  let lastSelectedPlanId = null;
+  let cablesDrawn = false;
+  const clean = (value) => String(value ?? "").replace(/🔎/g, "").trim();
   // Zoom-dependent detail: overview (province) → stations (region) → details (area)
   const Z_STATIONS = 10; // station names, upgrade year labels, customer projects
   const Z_DETAILS = 11;  // MW per area, project names + connection estimate
@@ -104,8 +111,8 @@
       ${row(tm("desired"), u.year_desired)}${row(tm("feasible"), y)}
       ${row(tm("likely_range"), y === latest ? y : `${y}–${latest}`)}
       ${delay > 0 ? row(tm("delay"), `<b style="color:${delay >= 2 ? C.no_solution : C.solved_planned}">+${delay} ${tm("years")}</b>`) : ""}
-      ${row(tm("space"), u[`space_${s.lang}`] || "–")}
-      ${u[`risk_${s.lang}`] ? row(tm("risk"), u[`risk_${s.lang}`]) : ""}
+      ${row(tm("space"), clean(u[`space_${s.lang}`]) || "–")}
+      ${u[`risk_${s.lang}`] ? row(tm("risk"), clean(u[`risk_${s.lang}`])) : ""}
       ${row(tm("added"), `${u.mw_added_offtake} MW`)}</table>
       <div class="note">${tm("sources")}${u.years_verified ? " ✓" : " 🔎"}${u.location_approx ? ` · ${tm("approx")}` : ""} · ${tm("demo")}</div>`;
   }
@@ -114,12 +121,25 @@
     const id = st._area;
     return `<h4>${st.name.replace(/^\d+ kV /, "")}</h4><table>
       ${row("kV", st.voltages_kv.join(" / "))}
+      ${row(tm("status"), tm("operational"))}
       ${id ? row(tm("area"), ENGINE.area(id).name) : ""}</table>${id ? areaPopup(id, s).replace(/<h4>.*?<\/h4>/, "") : ""}`;
+  }
+
+  function cablePopup(feature) {
+    const p = feature.properties || {};
+    const year = p.AANLEGJAAR ? new Date(p.AANLEGJAAR).getFullYear() : "—";
+    const status = p.STATUS === "In service" ? tm("operational") : (p.STATUS || "—");
+    return `<h4>${tm("cable")}</h4><table>
+      ${row(tm("status"), `${tm("installed_underground")} · ${status}`)}
+      ${row("kV", p.SPANNINGSNIVEAU || "—")}
+      ${row(tm("cable_id"), p.NETSCHAKELID || "—")}
+      ${row(tm("year"), year)}
+    </table><div class="note">${tm("tbc_grid_operator")}</div>`;
   }
 
   const slug = (name) => name.replace(/^\d+ kV /, "").toLowerCase().replace(/ /g, "-");
 
-  document.addEventListener("dataready", async () => {
+  document.addEventListener("dataready", () => {
     map = L.map("map", { zoomControl: true }).setView([52.85, 6.6], 9);
     L.tileLayer("https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/grijs/EPSG:3857/{z}/{x}/{y}.png", {
       attribution: 'Kaart: <a href="https://www.pdok.nl">PDOK</a> (BRT Achtergrondkaart) · Grenzen: CBS/PDOK · Stations: © OpenStreetMap contributors · Netdata: TenneT, Enexis',
@@ -130,7 +150,7 @@
 
     // congestion areas
     areaLayer = L.geoJSON(APP.data.areas, {
-      style: () => ({ weight: 1, color: C.navy, fillOpacity: 0.5 }),
+      style: () => ({ weight: 1, color: C.navy, fillOpacity: 0.28 }),
       onEachFeature: (f, l) => l.on("click", (e) => {
         APP.setState({ selectedAreaId: f.properties.id, selectedPlanId: null });
         L.popup().setLatLng(e.latlng).setContent(areaPopup(f.properties.id, APP.state)).openOn(map);
@@ -138,17 +158,9 @@
     }).addTo(map);
     map.fitBounds(areaLayer.getBounds(), { padding: [20, 20] });
 
-    // real HV lines (optional)
+    // Cables and stations are loaded once by state.js; the map only renders the layers.
     lineLayer = L.layerGroup().addTo(map);
-    try {
-      const lines = await fetch("data/real/tennet-lines.geojson").then((r) => (r.ok ? r.json() : null));
-      if (lines) L.geoJSON(lines, { pane: "lines", style: { color: "#4a4a4a", weight: 1.5, opacity: 0.7 },
-        onEachFeature: (f, l) => l.bindTooltip(tm("line")) }).addTo(lineLayer);
-    } catch (_) { /* optional */ }
-
-    // existing stations (real, OpenStreetMap)
-    const raw = await fetch("data/drenthe-substations-osm.json").then((r) => r.json());
-    stations = (Array.isArray(raw) ? raw : Object.values(raw).find(Array.isArray))
+    stations = (APP.data.stations || [])
       .map((st) => ({ ...st, _area: ENGINE.area(slug(st.name)) ? slug(st.name) : null }));
     stationLayer = L.layerGroup().addTo(map);
     upgradeLayer = L.layerGroup().addTo(map);
@@ -156,12 +168,8 @@
     // customer projects + area MW labels (drawn per state/zoom in drawInfrastructure)
     planLayer = L.layerGroup().addTo(map);
     areaLabelLayer = L.layerGroup().addTo(map);
+    highlightLayer = L.layerGroup().addTo(map);
     map.on("zoomend", () => APP.setState({})); // redraw labels for the new zoom level
-
-    L.control.layers(null, {
-      [tm("infrastructure")]: L.layerGroup([stationLayer, upgradeLayer, lineLayer]).addTo(map),
-      [tm("plans")]: planLayer,
-    }, { collapsed: true }).addTo(map);
 
     // header controls
     document.getElementById("year").addEventListener("input", (e) => APP.setState({ year: +e.target.value }));
@@ -176,9 +184,11 @@
     upgradeLayer.clearLayers();
     planLayer.clearLayers();
     areaLabelLayer.clearLayers();
+    highlightLayer.clearLayers();
     const z = zoom();
+    const layers = s.layers || {};
 
-    for (const st of stations) {
+    if (layers.substations !== false) for (const st of stations) {
       const full = st._area && ENGINE.areaStatus(st._area, s).status === "bottleneck";
       const mk = L.circleMarker([st.lat, st.lon], { pane: "points", radius: z >= Z_STATIONS ? 8 : 5, weight: 3,
         color: full ? C.solved_planned : C.navy, fillColor: C.navy, fillOpacity: 1 });
@@ -191,7 +201,7 @@
         .addTo(stationLayer);
     }
 
-    for (const u of APP.data.upgrades) {
+    if (layers.upgrades !== false) for (const u of APP.data.upgrades) {
       if (u.lat == null) continue;
       const state = upgradeState(u, s), y = ENGINE.upgradeYear(u, s);
       const latest = Math.max(u.year_latest ?? y, y);
@@ -211,8 +221,28 @@
       }
     }
 
+    // underground high-voltage cables (real TenneT asset data). Redraw only when toggled on.
+    if (layers.cables === false) {
+      if (cablesDrawn) {
+        lineLayer.clearLayers();
+        cablesDrawn = false;
+      }
+    } else if (!cablesDrawn && APP.data.cables?.features?.length) {
+      L.geoJSON(APP.data.cables, {
+        pane: "lines",
+        style: { color: "#1f6f8b", weight: 1.5, opacity: 0.72 },
+        onEachFeature: (feature, layer) => {
+          layer.bindTooltip(tm("cable"));
+          layer.on("click", (event) => {
+            L.popup().setLatLng(event.latlng).setContent(cablePopup(feature)).openOn(map);
+          });
+        },
+      }).addTo(lineLayer);
+      cablesDrawn = true;
+    }
+
     // customer projects: hidden at province level, dots at region level, name + estimate at area level
-    if (z >= Z_STATIONS) {
+    if (layers.plans !== false && z >= Z_STATIONS) {
       for (const p of APP.data.plans) {
         const e = ENGINE.connectionEstimate(p.id, s);
         const est = e.earliest === null ? tm("no_upgrade") : e.onTime ? `${tm("on_time")} ${e.earliest}` : (e.earliest === e.latest ? `${e.earliest}` : `${e.earliest}–${e.latest}`);
@@ -236,6 +266,30 @@
           .addTo(areaLabelLayer);
       });
     }
+
+    // selected project: always show a halo, even at province level
+    const selectedPlan = s.selectedPlanId ? APP.data.plans.find((p) => p.id === s.selectedPlanId) : null;
+    if (selectedPlan) {
+      L.circleMarker([selectedPlan.lat, selectedPlan.lon], {
+        pane: "points", radius: 18, color: C.blue, weight: 2, fillColor: C.blue,
+        fillOpacity: 0.12, dashArray: "2 4",
+      }).addTo(highlightLayer);
+      const marker = L.circleMarker([selectedPlan.lat, selectedPlan.lon], {
+        pane: "points", radius: 7, color: C.navy, weight: 3, fillColor: C.blue, fillOpacity: 1,
+      }).addTo(highlightLayer);
+      if (z >= Z_STATIONS) {
+        marker.bindTooltip(
+          `${selectedPlan[`title_${s.lang}`]} · ${selectedPlan.mw_offtake || selectedPlan.mw_feed_in} MW`,
+          { permanent: true, direction: "top", offset: [0, -10], className: "pl-label" }
+        );
+      }
+      if (lastSelectedPlanId !== selectedPlan.id) {
+        map.panTo([selectedPlan.lat, selectedPlan.lon]);
+        lastSelectedPlanId = selectedPlan.id;
+      }
+    } else {
+      lastSelectedPlanId = null;
+    }
   }
 
   function drawLegend() {
@@ -249,6 +303,7 @@
       pt(`border:3px dashed ${C.blue};background:#fff`, tm("planned")) +
       pt(`border:3px dashed ${C.no_solution};background:#fff`, tm("at_risk")) +
       pt(`border:3px solid ${C.room}`, tm("in_service")) +
+      pt(`border:2px solid #1f6f8b`, tm("cable")) +
       (zoom() < Z_DETAILS ? `<div class="hint">${tm("zoom_hint")}</div>` : "");
   }
 
@@ -258,7 +313,7 @@
 
     areaLayer.eachLayer((l) => {
       const id = l.feature.properties.id, { key, st } = areaClass(id, s);
-      l.setStyle({ fillColor: C[key], weight: id === s.selectedAreaId ? 3 : 1 });
+      l.setStyle({ fillColor: C[key], fillOpacity: id === s.selectedAreaId ? 0.42 : 0.28, weight: id === s.selectedAreaId ? 3 : 1 });
       l.bindTooltip(`${l.feature.properties.name}: ${tm(key)} (${Math.round(st.ratio * 100)}%)`);
     });
     drawInfrastructure(s);

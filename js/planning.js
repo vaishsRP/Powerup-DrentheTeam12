@@ -1,126 +1,8 @@
 // Planning view: region overview + area detail.
 // Renders the Belasting tab. Reads ENGINE.* and APP.data; changes things only via APP.setState().
 // Owner: planning view. CSS lives in the marked block at the end of css/style.css.
-//
-// Temporary planning-view dictionary. The i18n owner can merge these keys into js/i18n.js
-// before the feature freeze; keeping them here avoids editing a shared file while we build.
 
 (() => {
-  const PV = {
-    nl: {
-      region_title: "Regionale planning",
-      region_sub: "Gebieden gesorteerd op eerste knelpuntjaar",
-      scenario: "Scenario",
-      scenario_contracted: "Alleen contracten",
-      scenario_expected: "Verwacht",
-      scenario_everything: "Alles",
-      summary_bottlenecks: "knelpunten in",
-      summary_delayed: "late netuitbreidingen",
-      summary_plans: "plannen in het register",
-      summary_decision: "eerste besluit",
-      too_late: "Te laat",
-      feb: "feb",
-      decision: "Besluit",
-      first_bottleneck: "Eerste knelpunt",
-      shortfall: "tekort",
-      headroom: "ruimte",
-      delayed: "vertraagd",
-      years: "jaar",
-      on_schedule: "op schema",
-      back_region: "Regio",
-      area_approx: "gebiedsbenadering",
-      peak: "Piek",
-      capacity: "Netgrens",
-      none_until: "Geen knelpunt t/m 2035",
-      band: "Bandbreedte scenario's",
-      flex: "Beschikbare flexibiliteit",
-      flex_after: "piek na flex",
-      upgrades: "Netuitbreidingen",
-      no_upgrades: "Geen netuitbreiding gepland. Alleen maatregelen kunnen helpen.",
-      reset_delays: "Reset scenariodata",
-      plans: "Plannen",
-      no_plans: "Nog geen plannen in dit gebied voor deze richting.",
-      footer: "Demo · fictieve gegevens · Jaartallen: Enexis Investeringsplan 2026 · gebieden: benadering",
-      needed_in: "Capaciteit nodig",
-      investment_plan: "Investeringsplan jan",
-      pmiek: "pMIEK feb",
-      too_late_measures: "Te laat: alleen maatregelen helpen.",
-      decision_by: "Besluit nodig vóór februari",
-      who_decides: "Wie: provincie (pMIEK) · netbeheerder (investeringsplan) · gemeente (vergunning)",
-      test_measures: "Test maatregelen",
-      desired: "gewenst",
-      feasible: "haalbaar",
-      lead: "doorlooptijd",
-      accelerated: "versneld",
-      plans_waiting: "plannen wachten hierop",
-      plan_waiting: "plan wacht hierop",
-      plan_needs: "nodig",
-      plan_estimate: "verwacht",
-      view_customer: "Klantview",
-      decision_none: "Geen besluit nodig t/m 2035",
-      maturity_idea: "Idee",
-      maturity_planned: "Gepland",
-      maturity_permit: "Vergunning",
-      maturity_contracted: "Contract",
-    },
-    en: {
-      region_title: "Regional planning",
-      region_sub: "Areas sorted by first bottleneck year",
-      scenario: "Scenario",
-      scenario_contracted: "Contracted only",
-      scenario_expected: "Expected",
-      scenario_everything: "Everything",
-      summary_bottlenecks: "bottlenecks in",
-      summary_delayed: "late grid upgrades",
-      summary_plans: "plans in the register",
-      summary_decision: "first decision",
-      too_late: "Too late",
-      feb: "Feb",
-      decision: "Decision",
-      first_bottleneck: "First bottleneck",
-      shortfall: "shortfall",
-      headroom: "headroom",
-      delayed: "delayed",
-      years: "yrs",
-      on_schedule: "on schedule",
-      back_region: "Region",
-      area_approx: "station-area approximation",
-      peak: "Peak",
-      capacity: "Grid limit",
-      none_until: "No bottleneck through 2035",
-      band: "Scenario range",
-      flex: "Available flexibility",
-      flex_after: "peak after flex",
-      upgrades: "Grid upgrades",
-      no_upgrades: "No grid upgrade planned. Only measures can help.",
-      reset_delays: "Reset scenario data",
-      plans: "Plans",
-      no_plans: "No plans in this area for this direction yet.",
-      footer: "Demo · illustrative data · Years: Enexis Investment Plan 2026 · areas: approximation",
-      needed_in: "Capacity needed",
-      investment_plan: "Investment plan Jan",
-      pmiek: "pMIEK Feb",
-      too_late_measures: "Too late: only measures can help.",
-      decision_by: "Decision needed before February",
-      who_decides: "Who: province (pMIEK) · grid operator (investment plan) · municipality (permits)",
-      test_measures: "Test measures",
-      desired: "desired",
-      feasible: "feasible",
-      lead: "lead time",
-      accelerated: "accelerated",
-      plans_waiting: "plans wait for this",
-      plan_waiting: "plan waits for this",
-      plan_needs: "needed",
-      plan_estimate: "expected",
-      view_customer: "Customer view",
-      decision_none: "No decision needed through 2035",
-      maturity_idea: "Idea",
-      maturity_planned: "Planned",
-      maturity_permit: "Permit",
-      maturity_contracted: "Contracted",
-    },
-  };
-
   const COLORS = {
     navy: "#003584",
     orange: "#FF6428",
@@ -133,8 +15,6 @@
 
   let chart = null;
 
-  const pt = (key) => PV[APP.state.lang]?.[key] ?? PV.nl[key] ?? key;
-
   const esc = (value) =>
     String(value ?? "").replace(/[&<>"']/g, (c) => ({
       "&": "&amp;",
@@ -143,6 +23,8 @@
       '"': "&quot;",
       "'": "&#39;",
     }[c]));
+
+  const clean = (value) => String(value ?? "").replace(/🔎/g, "").trim();
 
   const DIR_KEY = (dir) => (dir === "teruglevering" ? "feed_in" : "offtake");
   const MW_KEY = (dir) => (dir === "teruglevering" ? "mw_feed_in" : "mw_offtake");
@@ -161,31 +43,13 @@
     return null;
   }
 
-  // pMIEK -> investment plan -> in-service chain, for the direction being viewed.
-  function deadlineFor(areaId, state, dir) {
-    const first = firstBottleneck(areaId, state, dir);
-    if (first === null) return { needed: false };
-
-    const key = DIR_KEY(dir);
-    const upgrades = ENGINE.upgradesIn(areaId).filter((u) => (u[`mw_added_${key}`] || 0) > 0);
-    const lead = upgrades.length ? Math.max(...upgrades.map((u) => u.lead_years || 0)) : 4;
-    const investmentPlanYear = first - lead;
-    const pmiekYear = investmentPlanYear - 1;
-
-    return {
-      needed: true,
-      firstBottleneck: first,
-      leadYears: lead,
-      investmentPlanYear,
-      pmiekYear,
-      tooLate: pmiekYear < 2027,
-    };
-  }
-
   function delayFlag(upgrade, state) {
     const delay = ENGINE.upgradeYear(upgrade, state) - upgrade.year_desired;
     return { delay, flag: delay >= 2 ? "red" : delay === 1 ? "orange" : "none" };
   }
+
+  // Same "at risk" rule as the map: a study project or a delay of two years or more.
+  const isAtRisk = (upgrade, state) => delayFlag(upgrade, state).delay >= 2 || upgrade.phase === "study";
 
   function affectedPlans(areaId, upgrade, state, dir) {
     const key = MW_KEY(dir);
@@ -196,13 +60,34 @@
   }
 
   function scenarioRow(state) {
-    return `<label class="pv-select">${pt("scenario")}
+    return `<label class="pv-select">${t("scenario")}
       <select id="pv-scenario">
-        <option value="contracted"${state.scenario === "contracted" ? " selected" : ""}>${pt("scenario_contracted")}</option>
-        <option value="expected"${state.scenario === "expected" ? " selected" : ""}>${pt("scenario_expected")}</option>
-        <option value="everything"${state.scenario === "everything" ? " selected" : ""}>${pt("scenario_everything")}</option>
+        <option value="contracted"${state.scenario === "contracted" ? " selected" : ""}>${t("scenario_contracted")}</option>
+        <option value="expected"${state.scenario === "expected" ? " selected" : ""}>${t("scenario_expected")}</option>
+        <option value="everything"${state.scenario === "everything" ? " selected" : ""}>${t("scenario_everything")}</option>
       </select>
     </label>`;
+  }
+
+  function layerControls(state) {
+    const layers = state.layers || {};
+    const rows = [
+      ["substations", "layer_substations"],
+      ["cables", "layer_cables"],
+      ["upgrades", "layer_upgrades"],
+      ["plans", "layer_plans"],
+    ];
+    return `<details class="pv-layers" open>
+      <summary>${t("map_layers")}</summary>
+      <div class="pv-layer-grid">
+        ${rows
+          .map(
+            ([key, label]) =>
+              `<label class="pv-check"><input type="checkbox" data-layer="${key}" ${layers[key] !== false ? "checked" : ""}> ${t(label)}</label>`
+          )
+          .join("")}
+      </div>
+    </details>`;
   }
 
   function yearStrip(areaId, state, dir) {
@@ -218,40 +103,55 @@
   function decisionCard(deadline) {
     if (!deadline.needed) {
       return `<div class="pv-decision pv-ok">
-        <div class="pv-decision-title">${pt("decision")}</div>
-        <div class="muted">${pt("decision_none")}</div>
+        <div class="pv-decision-title">${t("decision")}</div>
+        <div class="muted">${t("decision_none")}</div>
       </div>`;
     }
 
     return `<div class="pv-decision ${deadline.tooLate ? "pv-danger" : "pv-warn"}">
-      <div class="pv-decision-title">${pt("decision")}</div>
+      <div class="pv-decision-title">${t("decision")}</div>
       <div class="pv-chain">
-        <span>${pt("needed_in")} <strong>${deadline.firstBottleneck}</strong></span>
-        <span>${pt("investment_plan")} <strong>${deadline.investmentPlanYear}</strong></span>
-        <span>${pt("pmiek")} <strong>${deadline.pmiekYear}</strong></span>
+        <span>${t("needed_in")} <strong>${deadline.firstBottleneck}</strong></span>
+        <span>${t("investment_plan")} <strong>${deadline.investmentPlanYear}</strong></span>
+        <span>${t("pmiek")} <strong>${deadline.pmiekYear}</strong></span>
       </div>
-      <div class="pv-decision-text">${deadline.tooLate ? pt("too_late_measures") : `${pt("decision_by")} ${deadline.pmiekYear}.`}</div>
-      <div class="muted">${pt("who_decides")}</div>
-      <button class="pv-btn pv-btn-small" data-measures>${pt("test_measures")}</button>
+      <div class="pv-decision-text">${deadline.tooLate ? t("too_late_measures") : `${t("decision_by")} ${deadline.pmiekYear}.`}</div>
+      <div class="muted">${t("who_decides")}</div>
+      <button class="pv-btn pv-btn-small" data-measures>${t("test_measures")}</button>
     </div>`;
   }
 
   function upgradeCard(upgrade, state, dir) {
     const inService = ENGINE.upgradeYear(upgrade, state);
+    const latest = Math.max(upgrade.year_latest ?? inService, inService);
     const flag = delayFlag(upgrade, state);
+    const atRisk = isAtRisk(upgrade, state);
     const added = upgrade[`mw_added_${DIR_KEY(dir)}`] || 0;
     const affected = affectedPlans(upgrade.area_id, upgrade, state, dir);
+    const status = inService <= state.year ? t("in_service") : atRisk ? t("at_risk") : t("planned");
+    const statusClass = inService <= state.year ? "pv-ok" : atRisk ? "pv-red" : "pv-orange";
     const flagText =
       flag.delay > 0
-        ? `+${flag.delay} ${pt("years")}`
+        ? `+${flag.delay} ${t("years")}`
         : flag.delay < 0
-        ? pt("accelerated")
-        : pt("on_schedule");
+        ? t("accelerated")
+        : t("on_schedule");
+    const phase =
+      upgrade.phase === "study"
+        ? t("phase_study")
+        : upgrade.phase === "commissioned"
+        ? t("phase_commissioned")
+        : (upgrade.phase || "—");
+    const range = inService === latest ? `${inService}` : `${inService}–${latest}`;
     const affectedText = affected.length
       ? affected.length === 1
-        ? `1 ${pt("plan_waiting")}`
-        : `${affected.length} ${pt("plans_waiting")}`
+        ? `1 ${t("plan_waiting")}`
+        : `${affected.length} ${t("plans_waiting")}`
       : "";
+    const affectedNames = affected
+      .slice(0, 3)
+      .map((plan) => esc(plan[`title_${state.lang}`] || plan.title_nl))
+      .join(", ");
     const tail = [
       added ? `+${added} MW ${dir === "teruglevering" ? t("feed_in") : t("offtake")}` : "",
       affectedText,
@@ -260,14 +160,18 @@
     return `<div class="pv-upgrade">
       <div class="pv-upgrade-top">
         <strong>${esc(upgrade[`title_${state.lang}`] || upgrade.title_nl)}</strong>
-        <span class="pv-flag-${flag.flag}">${flagText}</span>
+        <span class="${statusClass}">${status}</span>
       </div>
-      <div class="pv-sub">${esc(upgrade.operator || "")} · ${pt("desired")} ${upgrade.year_desired} → ${pt("feasible")} ${upgrade.year_feasible} · ${pt("lead")} ${upgrade.lead_years} ${pt("years")}</div>
+      <div class="pv-sub">${esc(upgrade.operator || "")} · ${t("phase")}: ${phase} · ${t("lead")} ${upgrade.lead_years} ${t("years")}</div>
+      <div class="pv-sub">${t("desired")} ${upgrade.year_desired} → ${t("feasible")} ${inService} · ${t("likely_range")} ${range} · <span class="pv-flag-${flag.flag}">${flagText}</span></div>
+      ${upgrade[`space_${state.lang}`] ? `<div class="pv-sub">${t("space_permit")}: ${esc(clean(upgrade[`space_${state.lang}`]))}</div>` : ""}
+      ${upgrade[`risk_${state.lang}`] ? `<div class="pv-sub">${t("risk")}: ${esc(clean(upgrade[`risk_${state.lang}`]))}</div>` : ""}
       <div class="pv-slider-row">
         <input type="range" min="${Math.min(upgrade.year_desired, END)}" max="${END}" value="${inService}" data-up="${upgrade.id}">
         <strong>${inService}</strong>
       </div>
       ${tail ? `<div class="pv-sub">${tail}</div>` : ""}
+      ${affectedNames ? `<div class="pv-sub">${t("affected_projects")}: ${affectedNames}${affected.length > 3 ? "…" : ""}</div>` : ""}
     </div>`;
   }
 
@@ -286,8 +190,8 @@
         <strong>${esc(plan[`title_${state.lang}`] || plan.title_nl)}</strong>
         <span class="pv-mw">${Math.round(mw)} MW</span>
       </div>
-      <div class="pv-sub">${pt(`maturity_${plan.maturity}`)} · ${pt("plan_needs")} ${plan.year_needed} · ${pt("plan_estimate")} ${estimateText}</div>
-      <button class="pv-link" data-customer="${plan.id}">${pt("view_customer")}</button>
+      <div class="pv-sub">${t(`maturity_${plan.maturity}`)} · ${t("plan_needs")} ${plan.year_needed} · ${t("plan_estimate")} ${estimateText}</div>
+      <button class="pv-link" data-customer="${plan.id}">${t("view_customer")}</button>
     </div>`;
   }
 
@@ -296,19 +200,25 @@
     const gap = row.st.capacity - row.st.load;
     const gapText =
       gap < 0
-        ? `${pt("shortfall")} ${Math.abs(Math.round(gap))} MW`
-        : `${pt("headroom")} ${Math.round(gap)} MW`;
+        ? `${t("shortfall")} ${Math.abs(Math.round(gap))} MW`
+        : `${t("headroom")} ${Math.round(gap)} MW`;
     const maxDelay = row.delayed.reduce((max, item) => Math.max(max, item.delay), 0);
-    const delayText = maxDelay > 0 ? `${pt("delayed")} +${maxDelay} ${pt("years")}` : pt("on_schedule");
-    const flagClass = row.delayed.some((item) => item.flag === "red")
+    const atRisk = row.delayed.some((item) => item.atRisk);
+    const delayText =
+      maxDelay > 0
+        ? `${t("delayed")} +${maxDelay} ${t("years")}`
+        : atRisk
+        ? t("at_risk")
+        : t("on_schedule");
+    const flagClass = row.delayed.some((item) => item.flag === "red" || item.atRisk)
       ? "pv-red"
       : row.delayed.length
       ? "pv-orange"
       : "pv-ok";
     const deadlineHtml = row.deadline.needed
       ? row.deadline.tooLate
-        ? `<span class="pv-red">${pt("too_late")}</span>`
-        : `${pt("feb")} ${row.deadline.pmiekYear}`
+        ? `<span class="pv-red">${t("too_late_short")}</span>`
+        : `${t("feb")} ${row.deadline.pmiekYear}`
       : "—";
 
     return `<button class="pv-area-card" data-area="${row.area.id}">
@@ -317,7 +227,7 @@
         <span class="pv-chip status-${row.st.status}">${t(row.st.status)}</span>
       </div>
       <div class="pv-area-meta">${pct}% in ${state.year} · ${gapText} · <span class="${flagClass}">${delayText}</span></div>
-      <div class="pv-area-deadline">${pt("decision")}: ${deadlineHtml}${row.first ? ` · ${pt("first_bottleneck")} ${row.first}` : ""}</div>
+      <div class="pv-area-deadline">${t("decision")}: ${deadlineHtml}${row.first ? ` · ${t("first_bottleneck")} ${row.first}` : ""}</div>
     </button>`;
   }
 
@@ -328,16 +238,16 @@
         const area = feature.properties;
         const st = ENGINE.areaStatus(area.id, state, state.year, dir);
         const first = firstBottleneck(area.id, state, dir);
-        const deadline = deadlineFor(area.id, state, dir);
+        const deadline = ENGINE.decisionDeadline(area.id, state, dir);
         const delayed = ENGINE.upgradesIn(area.id)
-          .map((upgrade) => ({ upgrade, ...delayFlag(upgrade, state) }))
-          .filter((item) => item.delay >= 1);
+          .map((upgrade) => ({ upgrade, ...delayFlag(upgrade, state), atRisk: isAtRisk(upgrade, state) }))
+          .filter((item) => item.delay >= 1 || item.atRisk);
         return { area, st, first, deadline, delayed };
       })
       .sort((a, b) => (a.first ?? 9999) - (b.first ?? 9999) || a.area.name.localeCompare(b.area.name));
 
     const bottlenecks = rows.filter((row) => row.st.status === "bottleneck").length;
-    const delayedCount = ENGINE.delayFlags(state).filter((flag) => flag.delay >= 1).length;
+    const delayedCount = APP.data.upgrades.filter((upgrade) => isAtRisk(upgrade, state)).length;
     const decisionYears = rows
       .map((row) => row.deadline)
       .filter((deadline) => deadline.needed)
@@ -347,23 +257,29 @@
       firstDecision === null
         ? "—"
         : firstDecision < 2027
-        ? `<span class="pv-red">${pt("too_late")}</span>`
-        : `${pt("feb")} ${firstDecision}`;
+        ? `<span class="pv-red">${t("too_late_short")}</span>`
+        : `${t("feb")} ${firstDecision}`;
 
-    el.innerHTML = `<div class="pv-head"><h2>${pt("region_title")}</h2></div>
+    el.innerHTML = `<div class="pv-head"><h2>${t("region_title")}</h2></div>
       ${scenarioRow(state)}
+      ${layerControls(state)}
       <div class="pv-tiles">
-        ${tile(`${bottlenecks} / ${rows.length}`, pt("summary_bottlenecks"), `${state.year}`)}
-        ${tile(`${delayedCount}`, pt("summary_delayed"))}
-        ${tile(`${APP.data.plans.length}`, pt("summary_plans"))}
-        ${tile(firstDecisionText, pt("summary_decision"))}
+        ${tile(`${bottlenecks} / ${rows.length}`, t("summary_bottlenecks"), `${state.year}`)}
+        ${tile(`${delayedCount}`, t("summary_delayed"))}
+        ${tile(`${APP.data.plans.length}`, t("summary_plans"))}
+        ${tile(firstDecisionText, t("summary_decision"))}
       </div>
-      <div class="pv-section-title">${pt("region_sub")}</div>
+      <div class="pv-section-title">${t("region_sub")}</div>
       <div class="pv-area-list">${rows.map((row) => areaCard(row, state)).join("")}</div>
-      <p class="muted">${pt("footer")}</p>`;
+      <p class="muted">${t("footer")}</p>`;
 
     document.getElementById("pv-scenario")?.addEventListener("change", (event) =>
       APP.setState({ scenario: event.target.value })
+    );
+    el.querySelectorAll("input[data-layer]").forEach((input) =>
+      input.addEventListener("change", () =>
+        APP.setState({ layers: { ...(state.layers || {}), [input.dataset.layer]: input.checked } })
+      )
     );
     el.querySelectorAll("[data-area]").forEach((button) =>
       button.addEventListener("click", () =>
@@ -382,7 +298,7 @@
     const dir = state.direction;
     const st = ENGINE.areaStatus(area.id, state, state.year, dir);
     const first = firstBottleneck(area.id, state, dir);
-    const deadline = deadlineFor(area.id, state, dir);
+    const deadline = ENGINE.decisionDeadline(area.id, state, dir);
     const gap = st.capacity - st.load;
     const mwKey = MW_KEY(dir);
 
@@ -400,42 +316,48 @@
       .sort((a, b) => a.year_needed - b.year_needed);
 
     el.innerHTML = `<div class="pv-head">
-        <button class="pv-back" id="pv-back">← ${pt("back_region")}</button>
+        <button class="pv-back" id="pv-back">← ${t("back_region")}</button>
       </div>
       <h2 class="pv-area-title">${esc(area.name)} <span class="pv-chip status-${st.status}">${t(st.status)}</span></h2>
-      <div class="pv-sub">${esc(area.station || "")} · ${pt("area_approx")}</div>
+      <div class="pv-sub">${esc(area.station || "")} · ${t("area_approx")}</div>
       ${scenarioRow(state)}
+      ${layerControls(state)}
       <div class="pv-tiles">
-        ${tile(`${Math.round(st.load)} MW`, pt("peak"), `${state.year}`)}
-        ${tile(`${Math.round(st.capacity)} MW`, pt("capacity"), `${state.year}`)}
-        ${tile(`${gap < 0 ? "−" : "+"}${Math.abs(Math.round(gap))} MW`, gap < 0 ? pt("shortfall") : pt("headroom"))}
-        ${tile(first ? `${first}` : "—", pt("first_bottleneck"), first ? "" : pt("none_until"))}
+        ${tile(`${Math.round(st.load)} MW`, t("peak"), `${state.year}`)}
+        ${tile(`${Math.round(st.capacity)} MW`, t("capacity"), `${state.year}`)}
+        ${tile(`${gap < 0 ? "−" : "+"}${Math.abs(Math.round(gap))} MW`, gap < 0 ? t("shortfall") : t("headroom"))}
+        ${tile(first ? `${first}` : "—", t("first_bottleneck"), first ? "" : t("none_until"))}
       </div>
-      ${showBand ? `<div class="pv-band">${pt("band")}: ${Math.round(contracted)}–${Math.round(everything)} MW</div>` : ""}
-      ${flex > 0 ? `<div class="pv-flex">${pt("flex")}: ${Math.round(flex)} MW · ${pt("flex_after")}: ${Math.max(0, Math.round(st.load - flex))} MW</div>` : ""}
+      ${showBand ? `<div class="pv-band">${t("band")}: ${Math.round(contracted)}–${Math.round(everything)} MW</div>` : ""}
+      ${flex > 0 ? `<div class="pv-flex">${t("flex")}: ${Math.round(flex)} MW · ${t("flex_after")}: ${Math.max(0, Math.round(st.load - flex))} MW</div>` : ""}
       ${yearStrip(area.id, state, dir)}
       <div class="pv-chart"><canvas id="pv-chart-years"></canvas></div>
       ${decisionCard(deadline)}
-      <h3 class="pv-section-title">${pt("upgrades")}</h3>
+      <h3 class="pv-section-title">${t("upgrades")}</h3>
       <div class="pv-upgrades">${
         upgrades.length
           ? upgrades.map((upgrade) => upgradeCard(upgrade, state, dir)).join("")
-          : `<p class="muted">${pt("no_upgrades")}</p>`
+          : `<p class="muted">${t("no_upgrades")}</p>`
       }</div>
-      ${Object.keys(state.upgradeYears).length ? `<button class="pv-btn" id="pv-reset">${pt("reset_delays")}</button>` : ""}
-      <h3 class="pv-section-title">${pt("plans")} (${plans.length})</h3>
+      ${Object.keys(state.upgradeYears).length ? `<button class="pv-btn" id="pv-reset">${t("reset_delays")}</button>` : ""}
+      <h3 class="pv-section-title">${t("plans")} (${plans.length})</h3>
       <div class="pv-plans">${
         plans.length
           ? plans.map((plan) => planRow(plan, state, dir)).join("")
-          : `<p class="muted">${pt("no_plans")}</p>`
+          : `<p class="muted">${t("no_plans")}</p>`
       }</div>
-      <p class="muted">${pt("footer")}</p>`;
+      <p class="muted">${t("footer")}</p>`;
 
     document.getElementById("pv-back").addEventListener("click", () =>
       APP.setState({ selectedAreaId: null, selectedPlanId: null })
     );
     document.getElementById("pv-scenario")?.addEventListener("change", (event) =>
       APP.setState({ scenario: event.target.value })
+    );
+    el.querySelectorAll("input[data-layer]").forEach((input) =>
+      input.addEventListener("change", () =>
+        APP.setState({ layers: { ...(state.layers || {}), [input.dataset.layer]: input.checked } })
+      )
     );
     el.querySelectorAll("[data-year]").forEach((button) =>
       button.addEventListener("click", () => APP.setState({ year: +button.dataset.year }))
@@ -482,7 +404,7 @@
         labels: data.years,
         datasets: [
           {
-            label: pt("peak"),
+            label: t("peak"),
             data: data.load.map((value) => +value.toFixed(1)),
             borderColor: COLORS.navy,
             backgroundColor: COLORS.navy,
@@ -492,7 +414,7 @@
             tension: 0.2,
           },
           {
-            label: pt("capacity"),
+            label: t("capacity"),
             data: data.capacity,
             borderColor: COLORS.orange,
             borderDash: [6, 4],
@@ -514,9 +436,9 @@
                 const load = data.load[index];
                 const capacity = data.capacity[index];
                 if (context.datasetIndex === 0) {
-                  return `${pt("peak")}: ${Math.round(load)} MW (${capacity ? Math.round((load / capacity) * 100) : 0}%)`;
+                  return `${t("peak")}: ${Math.round(load)} MW (${capacity ? Math.round((load / capacity) * 100) : 0}%)`;
                 }
-                return `${pt("capacity")}: ${Math.round(capacity)} MW`;
+                return `${t("capacity")}: ${Math.round(capacity)} MW`;
               },
             },
           },
