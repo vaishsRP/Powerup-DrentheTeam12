@@ -2,7 +2,7 @@
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const lang = () => STORE.state.lang;
 const title = (o) => o?.[`title_${lang()}`] ?? "";
-const STATUS_CLASS = { room: "s-room", limited: "s-limited", bottleneck: "s-investigate", proceeds: "s-room", delayed: "s-investigate", not_possible: "s-shortage" };
+const STATUS_CLASS = { room: "s-room", limited: "s-limited", bottleneck: "s-shortage", proceeds: "s-room", delayed: "s-investigate", not_possible: "s-shortage" };
 const CODE_CLASS = ["s-room", "s-limited", "s-investigate", "s-shortage"];
 const TYPE_ICON = { solar: "sun", battery: "battery-charging", defence: "shield", hospital: "hospital", school: "school", housing: "building-2",
   business_park: "factory", industry: "factory", charging: "car-front", hydrogen: "zap", heat: "flame" };
@@ -73,7 +73,7 @@ const StartPage = {
       const dir = STORE.state.dir;
       svg.querySelectorAll("circle").forEach((c) => {
         const p = pts[+c.dataset.i].p, q = p ? p[`queue_${dir}_mw`] || 0 : 0;
-        c.setAttribute("fill", p ? MAPKIT.CODE[ENGINE.ckCode(p, dir)] : "#cfc8c3");
+        c.setAttribute("fill", p ? MAPKIT.CODE[ENGINE.ckCode(p, dir)] : "#D5DED3");
         c.setAttribute("r", (2.6 + 5.2 * Math.sqrt(q / maxQ)).toFixed(1));
       });
       root.querySelectorAll("#dot-dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === dir));
@@ -273,7 +273,8 @@ const OverviewPage = {
   mount(root) {
     const map = MAPKIT.create(root.querySelector("#map"), { zoom: 9 }), g = L.layerGroup().addTo(map);
     let leg = null;
-    const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]]); }, 60);
+    // leave room for the floating toolbar (top) and the legend (bottom)
+    const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]], { paddingTopLeft: [10, 90], paddingBottomRight: [10, 40] }); }, 60);
     const draw = () => {
       const s = STORE.state, sim = ENGINE.simulate(s.applied);
       g.clearLayers();
@@ -281,18 +282,19 @@ const OverviewPage = {
       else MAPKIT.drawProjAreas(g, sim, s.dir, s.year, { onClick: (id) => (location.hash = `#/planner/gebied/${id}`) });
       if (s.layers.cables) MAPKIT.drawLines(g, s.view === "today" ? 2026 : s.year);
       if (s.layers.stations) MAPKIT.drawStations(g);
-      if (s.layers.upgrades) MAPKIT.drawUpgrades(g, s.applied, s.view === "today" ? 2026 : s.year);
+      if (s.layers.upgrades) MAPKIT.drawUpgrades(g, s.applied, s.view === "today" ? 2026 : s.year, { labels: "risk" });
       if (s.layers.projects) MAPKIT.drawOrders(g, sim, { onClick: (o) => (location.hash = `#/planner/gebied/${o.area_id}`) });
       leg?.remove();
       const infraOn = s.layers.stations || s.layers.upgrades || s.layers.cables;
       leg = MAPKIT.legend(map, (s.view === "today" ? MAPKIT.legendReal(false) : MAPKIT.legendProj()) +
-        (infraOn ? MAPKIT.legendInfra() + (s.layers.cables ? `<div class="q">${t("grid_note")}</div>` : "") : ""));
+        (infraOn ? MAPKIT.legendInfra() + (s.layers.cables ? `<section><div class="q">${t("grid_note")}</div></section>` : "") : ""), "bottomleft", { wide: true });
       root.querySelectorAll("#v-view button").forEach((b) => b.classList.toggle("on", b.dataset.v === s.view));
       root.querySelectorAll("#v-dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === s.dir));
       root.querySelectorAll("#v-layers .chip").forEach((b) => b.classList.toggle("on", s.layers[b.dataset.l]));
       root.querySelector("#v-yr").style.opacity = s.view === "proj" ? 1 : 0.4;
       root.querySelector("#yr").value = s.year; root.querySelector("#yr-v").textContent = s.year;
       root.querySelector("#side").innerHTML = this.side(sim);
+      root.querySelector("#show-all")?.addEventListener("click", () => { STORE.state.showAll = !STORE.state.showAll; draw(); });
     };
     root.querySelectorAll("#v-view button").forEach((b) => (b.onclick = () => { STORE.state.view = b.dataset.v; draw(); }));
     root.querySelectorAll("#v-dir button").forEach((b) => (b.onclick = () => { STORE.state.dir = b.dataset.d; draw(); }));
@@ -316,10 +318,11 @@ const OverviewPage = {
         <div><b class="${firstDec?.late ? "bad" : ""}">${firstDec ? (firstDec.late ? t("too_late") : `${t("pmiek")} ${firstDec.pmiek}`) : "–"}</b><span>${t("k_first")}</span></div>
       </div>
       <div class="side-h"><h2>${t("attention")}</h2><p class="small muted">${t("attention_lead")}</p></div>
-      ${rows.map((r) => `<a class="area-row" href="#/planner/gebied/${r.id}">
+      ${rows.filter((r) => s.showAll || r.d || r.now.status !== "room").map((r) => `<a class="area-row" href="#/planner/gebied/${r.id}">
         <h3>${esc(ENGINE.area(r.id).name)}</h3>${pill(STATUS_CLASS[r.now.status], t(r.now.status))}
         <div class="sub">${meter(r.now.ratio)}<span>${r.d ? `${t("first_bn")} ${r.d.first}` : t("none_bn")}</span>
-        ${r.d ? `<span style="color:${r.d.late ? "var(--shortage)" : "inherit"}">${r.d.late ? t("too_late") : `${t("pmiek")} ${r.d.pmiek}`}</span>` : ""}</div></a>`).join("")}`;
+        ${r.d ? `<span style="color:${r.d.late ? "var(--shortage-tx)" : "inherit"}">${r.d.late ? t("too_late") : `${t("pmiek")} ${r.d.pmiek}`}</span>` : ""}</div></a>`).join("")}
+      ${rows.some((r) => !(r.d || r.now.status !== "room")) ? `<button class="show-all" id="show-all">${s.showAll ? t("show_less") : t("show_all", { n: rows.length })}</button>` : ""}`;
   },
 };
 
@@ -331,7 +334,7 @@ const AreaPage = {
     const s = STORE.state, sim = ENGINE.simulate(s.applied), d = ENGINE.deadline(sim, id, s.dir), cur = ENGINE.areaStatus(sim, id, s.dir, s.year);
     const strip = Array.from({ length: 10 }, (_, i) => 2026 + i).map((y) => {
       const st = ENGINE.areaStatus(sim, id, s.dir, y).status;
-      return `<button data-y="${y}" class="${y === s.year ? "on" : ""}" style="background:${MAPKIT.COL[st]};${st === "limited" ? "color:#1d2433" : ""}">${y}</button>`;
+      return `<button data-y="${y}" class="${y === s.year ? "on" : ""}" style="background:${MAPKIT.COL[st]};opacity:${st === "room" ? .85 : 1}">${y}</button>`;
     }).join("");
     const ups = ENGINE.upgradesIn(id).map((u) => {
       const y = ENGINE.upYear(u, s.applied), dl = y - u.year_desired;
@@ -369,7 +372,7 @@ const AreaPage = {
           <div class="panel">
             <h2>${icon("calendar-clock")} ${t("decision")}</h2>
             ${d ? `<div class="chain ${d.late ? "" : ""}"><div class="${d.late ? "late" : ""}"><span>${t("pmiek")}</span><b>${d.pmiek}</b></div><div class="${d.late ? "late" : ""}"><span>${t("ip")}</span><b>${d.ip}</b></div><div><span>${t("in_service")}</span><b>${d.first}</b></div></div>
-              <p style="margin-top:12px">${d.late ? `<b style="color:var(--shortage)">${t("late_measures")}</b>` : `${t("decide_by")} ${d.pmiek}.`}</p>` : `<p class="muted">${t("none_bn")}</p>`}
+              <p style="margin-top:12px">${d.late ? `<b style="color:var(--shortage-tx)">${t("late_measures")}</b>` : `${t("decide_by")} ${d.pmiek}.`}</p>` : `<p class="muted">${t("none_bn")}</p>`}
           </div>
           <div class="panel"><h2>${icon("route")} ${t("upgrades")}</h2>${ups}</div>
         </div>
@@ -389,11 +392,11 @@ const AreaPage = {
     const chart = new Chart(root.querySelector("#chart"), {
       type: "line",
       data: { labels: ser.years, datasets: [
-        { label: t("peak"), data: ser.load.map((v) => Math.round(v)), borderColor: "#003584", backgroundColor: "rgba(0,53,132,.08)", fill: true, tension: 0.25, pointRadius: 3 },
-        { label: t("capacity"), data: ser.cap.map((v) => Math.round(v)), borderColor: "#FF6428", borderDash: [6, 4], stepped: true, pointRadius: 0 },
+        { label: t("peak"), data: ser.load.map((v) => Math.round(v)), borderColor: "#0A5353", backgroundColor: "rgba(57,162,74,.12)", fill: true, tension: 0.25, pointRadius: 3, pointBackgroundColor: "#0A5353" },
+        { label: t("capacity"), data: ser.cap.map((v) => Math.round(v)), borderColor: "#E25A6B", borderDash: [6, 4], stepped: true, pointRadius: 0, borderWidth: 2 },
       ] },
-      options: { maintainAspectRatio: false, animation: false, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { family: "Arial" } } } },
-        scales: { y: { title: { display: true, text: "MW" }, beginAtZero: true, grid: { color: "#eee" } }, x: { grid: { display: false } } } },
+      options: { maintainAspectRatio: false, animation: false, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { family: "'Plus Jakarta Sans', Arial" } } } },
+        scales: { y: { title: { display: true, text: "MW" }, beginAtZero: true, grid: { color: "#E6EEE5" } }, x: { grid: { display: false } } } },
     });
     const map = MAPKIT.create(root.querySelector("#map"), { scroll: false }), g = L.layerGroup().addTo(map);
     const f = STORE.data.areas.features.find((x) => x.properties.id === id);
@@ -417,13 +420,13 @@ const SimPage = {
   mount(root) {
     const s = STORE.state, map = MAPKIT.create(root.querySelector("#map")), g = L.layerGroup().addTo(map);
     const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]]); }, 60);
-    MAPKIT.legend(map, MAPKIT.legendProj());
+    MAPKIT.legend(map, MAPKIT.legendProj(), "bottomleft", { wide: true });
     const left = root.querySelector("#sim-left"), right = root.querySelector("#sim-right");
     const draw = () => {
       const sim = ENGINE.simulate(s.draft), D = ENGINE.diff(s.applied, s.draft);
       g.clearLayers();
       MAPKIT.drawProjAreas(g, sim, s.dir, s.year, { selected: s.simArea, onClick: (id) => { s.simArea = id; draw(); } });
-      MAPKIT.drawUpgrades(g, s.draft, s.year);
+      MAPKIT.drawUpgrades(g, s.draft, s.year, { labels: "risk" });
       MAPKIT.drawOrders(g, sim, {});
       const areaOpts = STORE.data.areas.features.map((f) => `<option value="${f.properties.id}" ${f.properties.id === s.simArea ? "selected" : ""}>${esc(f.properties.name)}</option>`).join("");
       const q = s.simArea ? ENGINE.orders().filter((o) => o.area_id === s.simArea && o.category !== "battery") : [];

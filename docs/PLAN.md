@@ -188,7 +188,7 @@ Sources                      Intake                 Register                Engi
 
 **Video & Dutch**
 - [ ] Ask the organisers on Discord: may the finale Q&A be in English? (Their site says presentations are Dutch, with experts speaking English.)
-- [ ] Proofread all Dutch UI text (`app/src/i18n/nl.json` once it exists).
+- [ ] Proofread all Dutch UI text: `app/js/i18n.js` (the demo app; lines marked `// NL?` were written by a non-native speaker, e.g. the legend and "show all areas" texts) and the `// NL?` strings in `js/map.js`.
 - [ ] Translate the pitch script into a Dutch voiceover; record it.
 - [ ] Edit the video: MP4, ≤ 2:00, royalty-free music only.
 

@@ -44,7 +44,7 @@ Two of the three teammates **do not speak Dutch**. When you summarise Dutch sour
   - peak vs grid-limit tiles and a 24-hour curve
   - a "Test scenario" button
   - legend *Ruimte / Beperkt / Knelpunt*
-- TenneT palette: navy `#003584`, blue `#3C8CFA`, green `#33A92F`, warm grey `#F0ECEA`, orange `#FF6428`, yellow `#FAC850`. Font Arial/Helvetica.
+- Brand (Thu 12 Nov evening, replaces the TenneT palette in the demo app): **NetWijzer**, tagline *Net een stukje wijzer.* Logo `app/netwijzer-logo.png`. Colours from the logo: ink `#022A2C`, teal `#0A5353` (actions), leaf green `#39A24A` (accent); status scale green `#5DB565` / yellow `#F2C94C` / orange `#F2994A` / red `#E25A6B`; violet `#8E5BD9` = under construction. Font Plus Jakarta Sans (Arial fallback). Tokens live in `app/app.css` `:root`.
 - Lucide icons, **no emoji**, no flashy gradients. It must read well in a 1080p screen recording.
 
 ## Tech (v2 app in `app/` is the demo surface)

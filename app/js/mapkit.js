@@ -1,20 +1,48 @@
 // Map building blocks shared by all pages (Leaflet). Each draw* function fills a LayerGroup.
 const MAPKIT = (() => {
-  const COL = { room: "#33A92F", limited: "#FAC850", bottleneck: "#FF6428", investigate: "#FF6428", shortage: "#C8102E",
-    proceeds: "#33A92F", delayed: "#FF6428", not_possible: "#C8102E", navy: "#003584", blue: "#3C8CFA", grey: "#6b6b6b", brown: "#7a5230" };
+  // NetWijzer palette (see app.css): status scale capacity available → congested, brand ink/teal/leaf, violet for "under construction".
+  // Keys navy/blue are kept for older callers and now hold the brand ink and teal.
+  const COL = { room: "#5DB565", limited: "#F2C94C", bottleneck: "#E25A6B", investigate: "#F2994A", shortage: "#E25A6B",
+    proceeds: "#5DB565", delayed: "#F2994A", not_possible: "#E25A6B", navy: "#022A2C", blue: "#0A5353", leaf: "#39A24A",
+    grey: "#4F625D", brown: "#4F625D", build: "#8E5BD9", veil: "#F5F8F4" };
   const CODE = [COL.room, COL.limited, COL.investigate, COL.shortage];
   const LINE = {
     operational: { color: COL.grey, weight: 2.5, dashArray: null }, overhead: { color: COL.grey, weight: 2.5, dashArray: null },
-    underground: { color: COL.brown, weight: 3, dashArray: "2 5" }, under_construction: { color: COL.investigate, weight: 3, dashArray: "8 5" },
+    underground: { color: COL.brown, weight: 3, dashArray: "2 5" }, under_construction: { color: COL.build, weight: 3, dashArray: "8 5" },
     planned: { color: COL.blue, weight: 3, dashArray: "10 7" }, planned_cable: { color: COL.blue, weight: 3, dashArray: "2 6" },
   };
   const row = (k, v) => `<tr><td>${k}</td><td>${v}</td></tr>`;
   const L_ = () => STORE.state.lang;
   const noIcon = () => L.divIcon({ className: "", iconSize: [0, 0] });
 
+  // Drenthe, so maps never wander off into empty space
+  const DRENTHE = L.latLngBounds([[52.61, 6.12], [53.21, 7.10]]);
+  // brand pin (the logo mark): teardrop in leaf green with a white bolt
+  const BRAND_PIN = `<svg viewBox="0 0 24 32" aria-hidden="true"><path d="M12 .8C5.8.8.8 5.6.8 11.6c0 7.9 9.6 17.7 10.4 18.5a1.1 1.1 0 0 0 1.6 0c.8-.8 10.4-10.6 10.4-18.5C23.2 5.6 18.2.8 12 .8z" fill="${COL.leaf}" stroke="#fff" stroke-width="1.4"/><path d="M13.9 4.6 7.3 13.5h4.4l-1.5 8 6.5-9.2h-4.5z" fill="#fff"/></svg>`;
+
+  // keep the map on Drenthe: no zooming out past the whole province, no panning far beyond it, grey veil outside it
+  function lock(map) {
+    map.setMaxBounds(DRENTHE.pad(0.15));
+    map.options.maxBoundsViscosity = 1.0;
+    const apply = () => {
+      if (!map._container || !map._loaded) return;
+      const z = map.getBoundsZoom(DRENTHE, false);
+      map.setMinZoom(Math.max(7, z));
+      if (map.getZoom() < z) map.setZoom(z);
+    };
+    setTimeout(apply, 120);
+    map.on("resize", apply);
+    const ol = STORE.data.outline?.features?.[0]?.geometry;
+    if (ol) {
+      const rings = (ol.type === "Polygon" ? [ol.coordinates] : ol.coordinates).map((p) => p[0].map(([x, y]) => [y, x]));
+      L.polygon([[[49, 1], [56, 1], [56, 11], [49, 11]], ...rings], { pane: "veil", stroke: false, fillColor: COL.veil, fillOpacity: 0.72, interactive: false }).addTo(map);
+      L.polygon(rings, { pane: "veil", color: COL.navy, weight: 1.5, opacity: 0.55, fill: false, interactive: false }).addTo(map);
+    }
+  }
+
   function create(el, opts = {}) {
     const map = L.map(el, {
-      zoomControl: true,
+      zoomControl: false,
       scrollWheelZoom: opts.scroll ?? true,
       // Avoid zoom-transition callbacks firing after a page has been replaced.
       zoomAnimation: false,
@@ -24,9 +52,12 @@ const MAPKIT = (() => {
     L.tileLayer("https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/grijs/EPSG:3857/{z}/{x}/{y}.png", {
       attribution: 'Kaart <a href="https://www.pdok.nl">PDOK</a> · CBS/PDOK · Capaciteitskaart Netbeheer Nederland · TenneT · Enexis IP2026 · © OpenStreetMap', maxZoom: 15,
     }).addTo(map);
+    L.control.zoom({ position: "topright" }).addTo(map);
     map.createPane("areas").style.zIndex = 400;
+    map.createPane("veil").style.zIndex = 410;
     map.createPane("lines").style.zIndex = 430;
     map.createPane("points").style.zIndex = 640;
+    lock(map);
     return map;
   }
 
@@ -43,7 +74,7 @@ const MAPKIT = (() => {
   function drawRealAreas(g, dir, opts = {}) {
     const fc = STORE.data.realAreas;
     if (!fc) return false;
-    L.geoJSON(fc, { pane: "areas", style: (f) => ({ weight: 0.8, color: "#fff", fillColor: CODE[ENGINE.ckCode(f.properties, dir)], fillOpacity: opts.subtle ? 0.28 : 0.6 }),
+    L.geoJSON(fc, { pane: "areas", style: (f) => ({ weight: 0.8, color: "#fff", fillColor: CODE[ENGINE.ckCode(f.properties, dir)], fillOpacity: opts.subtle ? 0.32 : 0.62 }),
       onEachFeature: (f, l) => { l.bindTooltip(`${f.properties.name}: ${t("cap" + ENGINE.ckCode(f.properties, dir))}`, { sticky: true }); l.bindPopup(realPopup(f.properties)); } }).addTo(g);
     return true;
   }
@@ -52,7 +83,7 @@ const MAPKIT = (() => {
   function drawProjAreas(g, sim, dir, year, opts = {}) {
     L.geoJSON(STORE.data.areas, { pane: "areas", style: (f) => {
         const s = ENGINE.areaStatus(sim, f.properties.id, dir, year);
-        return { weight: f.properties.id === opts.selected ? 3 : 1, color: COL.navy, fillColor: COL[s.status], fillOpacity: opts.subtle ? 0.25 : 0.55 };
+        return { weight: f.properties.id === opts.selected ? 3 : 1, color: f.properties.id === opts.selected ? COL.navy : "#fff", fillColor: COL[s.status], fillOpacity: opts.subtle ? 0.3 : 0.6 };
       },
       onEachFeature: (f, l) => {
         const s = ENGINE.areaStatus(sim, f.properties.id, dir, year);
@@ -62,11 +93,12 @@ const MAPKIT = (() => {
   }
 
   // ---------- infrastructure ----------
-  function drawStations(g) {
+  function drawStations(g, opts = {}) {
     for (const st of STORE.data.stations) {
       L.circleMarker([st.lat, st.lon], { pane: "points", radius: 6, weight: 2, color: "#fff", fillColor: COL.navy, fillOpacity: 1 })
         .bindTooltip(`${st.name.replace(/^\d+ kV /, "")}, ${st.voltages_kv.join("/")} kV, ${t("operational").toLowerCase()}`).addTo(g);
     }
+    if (!opts.detail) return; // the ~40 small TenneT station points only on request: too busy for the overview
     for (const f of STORE.data.realStations?.features || []) {
       const [lon, lat] = f.geometry.coordinates;
       L.circleMarker([lat, lon], { pane: "points", radius: 3, weight: 1, color: COL.grey, fillColor: "#fff", fillOpacity: 1 })
@@ -85,12 +117,15 @@ const MAPKIT = (() => {
     for (const u of STORE.data.upgrades) {
       if (u.lat == null || (opts.only && !opts.only.includes(u.id))) continue;
       const st = ENGINE.upStatus(u, dec, year), risk = st !== "operational" && ENGINE.atRisk(u, dec);
-      const color = st === "operational" ? COL.room : st === "under_construction" ? COL.investigate : risk ? COL.shortage : COL.blue;
+      const color = st === "operational" ? COL.room : st === "under_construction" ? COL.build : risk ? COL.shortage : COL.blue;
       const y = ENGINE.upYear(u, dec), latest = y + Math.max(0, (u.year_latest ?? u.year_feasible) - u.year_feasible);
       const m = L.circleMarker([u.lat, u.lon], { pane: "points", radius: 11, weight: 3, color, dashArray: st === "operational" ? null : "4 3", fillColor: "#fff", fillOpacity: 0.7 })
         .bindPopup(upgradePopup(u, dec, year)).addTo(g);
-      if (opts.labels !== false && st !== "operational")
-        m.bindTooltip(latest > y ? `${y}–${latest}` : `${y}`, { permanent: true, direction: "right", offset: [11, 0], className: `yr${risk ? " risk" : ""}` });
+      const yrs = latest > y ? `${y}–${latest}` : `${y}`;
+      // labels: true (all), "risk" (only delayed/uncertain ones permanent, the rest on hover), false (none)
+      if (opts.labels !== false && st !== "operational" && (opts.labels !== "risk" || risk))
+        m.bindTooltip(yrs, { permanent: true, direction: "right", offset: [11, 0], className: `yr${risk ? " risk" : ""}` });
+      else m.bindTooltip(`${u[`title_${L_()}`]}: ${st === "operational" ? t("operational").toLowerCase() : yrs}`);
     }
   }
   const lineStatus = (l, year) => (l.year_feasible <= year ? (l.cable ? "underground" : "operational") : l.cable ? "planned_cable" : l.infra_status || "planned");
@@ -127,29 +162,47 @@ const MAPKIT = (() => {
     }
   }
   function pin(g, lat, lon, html) {
-    const m = L.marker([lat, lon], { pane: "points", zIndexOffset: 1000, icon: L.divIcon({ className: "pin", html: "<i></i><span></span>", iconSize: [0, 0] }) }).addTo(g);
-    if (html) m.bindTooltip(html, { permanent: true, direction: "top", offset: [0, -16], className: "lbl" });
+    const m = L.marker([lat, lon], { pane: "points", zIndexOffset: 1000, icon: L.divIcon({ className: "pin", html: `<i></i>${BRAND_PIN}`, iconSize: [0, 0] }) }).addTo(g);
+    if (html) m.bindTooltip(html, { permanent: true, direction: "top", offset: [0, -38], className: "lbl" });
     return m;
   }
   const label = (g, lat, lon, html, dir = "right", off = [12, 0]) =>
     L.marker([lat, lon], { interactive: false, icon: noIcon() }).bindTooltip(html, { permanent: true, direction: dir, offset: off, className: "lbl" }).addTo(g);
 
-  function legend(map, html, pos = "bottomleft") {
+  // compact legend with a header button to fold it away; the open/closed choice is remembered per browser
+  const LEGEND_KEY = "netwijzer-legend";
+  function legend(map, html, pos = "bottomleft", opts = {}) {
     const c = L.control({ position: pos });
-    c.onAdd = () => { const d = L.DomUtil.create("div", "map-legend"); d.innerHTML = html; L.DomEvent.disableClickPropagation(d); return d; };
+    c.onAdd = () => {
+      // big maps start open, the small side maps start folded so they don't hide the project
+      const key = LEGEND_KEY + (opts.wide ? "-wide" : "");
+      let closed = !opts.wide;
+      try { const v = localStorage.getItem(key); if (v) closed = v === "closed"; } catch (_) { /* ignore */ }
+      const d = L.DomUtil.create("div", `map-legend${opts.wide ? " wide" : ""}${closed ? " closed" : ""}`);
+      d.innerHTML = `<button type="button" class="lg-h" aria-expanded="${!closed}">${icon("layers", 14)}${t("legend")}${icon("chevron-down", 14).replace('class="ic"', 'class="ic chev"')}</button><div class="lg-b">${html}</div>`;
+      d.querySelector(".lg-h").onclick = () => {
+        const now = d.classList.toggle("closed");
+        d.querySelector(".lg-h").setAttribute("aria-expanded", String(!now));
+        try { localStorage.setItem(key, now ? "closed" : "open"); } catch (_) { /* ignore */ }
+      };
+      L.DomEvent.disableClickPropagation(d);
+      L.DomEvent.disableScrollPropagation(d);
+      return d;
+    };
     c.addTo(map);
     return c;
   }
   const sw = (color, text, op = 0.75) => `<div><span class="sw" style="background:${color};opacity:${op}"></span>${text}</div>`;
-  const legendReal = (subtle) => `<b>${t("view_today")}: ${t("view_today_hint")}</b>` + [0, 1, 2, 3].map((c) => sw(CODE[c], t("cap" + c), subtle ? 0.45 : 0.75)).join("");
-  const legendProj = () => `<b>${t("view_proj")}</b>` + ["room", "limited", "bottleneck"].map((k) => sw(COL[k], t(k))).join("");
-  const legendInfra = () => `<b>${t("l_infra")}</b>` +
+  const legendReal = (subtle) => `<section><b>${t("view_today")}: ${t("view_today_hint")}</b>` + [0, 1, 2, 3].map((c) => sw(CODE[c], t("cap" + c), subtle ? 0.5 : 0.8)).join("") + `</section>`;
+  const legendProj = () => `<section><b>${t("view_proj")}</b>` + ["room", "limited", "bottleneck"].map((k) => sw(COL[k], t(k), 0.8)).join("") + `</section>`;
+  const legendInfra = () => `<section><b>${t("l_infra")}</b>` +
     `<div><span class="pt" style="background:${COL.navy}"></span>${t("operational")}</div>` +
-    `<div><span class="pt" style="border:3px dashed ${COL.investigate}"></span>${t("under_construction")}</div>` +
+    `<div><span class="pt" style="border:3px dashed ${COL.build}"></span>${t("under_construction")}</div>` +
     `<div><span class="pt" style="border:3px dashed ${COL.blue}"></span>${t("planned")}</div>` +
-    `<b>${t("l_cables")}</b><div><span class="ln" style="border-color:${COL.grey}"></span>${t("overhead")}</div>` +
+    `<div><span class="pt" style="border:3px dashed ${COL.shortage}"></span>${t("at_risk")}</div></section>` +
+    `<section><b>${t("l_cables")}</b><div><span class="ln" style="border-color:${COL.grey}"></span>${t("overhead")}</div>` +
     `<div><span class="ln" style="border-color:${COL.brown};border-top-style:dotted"></span>${t("underground")}</div>` +
-    `<div><span class="ln" style="border-color:${COL.blue};border-top-style:dashed"></span>${t("planned")}</div>`;
+    `<div><span class="ln" style="border-color:${COL.blue};border-top-style:dashed"></span>${t("planned")}</div></section>`;
 
-  return { COL, CODE, create, drawRealAreas, drawProjAreas, drawStations, drawUpgrades, drawLines, drawOrders, pin, label, legend, legendReal, legendProj, legendInfra, lineStatus, realPopup };
+  return { COL, CODE, DRENTHE, BRAND_PIN, create, drawRealAreas, drawProjAreas, drawStations, drawUpgrades, drawLines, drawOrders, pin, label, legend, legendReal, legendProj, legendInfra, lineStatus, realPopup };
 })();

@@ -1,7 +1,8 @@
 // All visible text. Dutch is the default. Dutch written by Claude: ask the Dutch teammate to proofread (whole nl block).
 const TEXT = {
   nl: {
-    product: "Regionale maatregelkaart", demo: "Demo met echte netdata",
+    product: "NetWijzer", tagline: "Net een stukje wijzer.", demo: "Demo met echte netdata", legend: "Legenda", at_risk: "Gepland, vertraagd of onzeker", // NL?
+    show_all: "Toon alle {n} gebieden", show_less: "Alleen gebieden die aandacht vragen", // NL?
     role_customer: "Klant", role_planner: "Planner",
     nav_start: "Start", nav_projects: "Mijn projecten", nav_new: "Nieuwe aanvraag", nav_overview: "Overzicht", nav_sim: "Simulator", nav_about: "Over",
     // start
@@ -94,7 +95,8 @@ const TEXT = {
     real: "Echt", demo_word: "Demo",
   },
   en: {
-    product: "Regional measures map", demo: "Demo with real grid data",
+    product: "NetWijzer", tagline: "A little wiser about the grid.", demo: "Demo with real grid data", legend: "Legend", at_risk: "Planned, delayed or uncertain",
+    show_all: "Show all {n} areas", show_less: "Only areas that need attention",
     role_customer: "Customer", role_planner: "Planner",
     nav_start: "Start", nav_projects: "My projects", nav_new: "New request", nav_overview: "Overview", nav_sim: "Simulator", nav_about: "About",
     hero_title: "One register for every energy plan in Drenthe",

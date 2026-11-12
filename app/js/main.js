@@ -17,7 +17,7 @@ function topbar(r) {
     : r.role === "planner" ? [["overview", "#/planner", "layout-dashboard", "nav_overview"], ["sim", "#/planner/simulator", "sliders-horizontal", "nav_sim"]]
     : [["start", "#/", "house", "nav_start"]];
   nav.push(["about", "#/over", "info", "nav_about"]);
-  return `<a class="brand" href="#/"><span class="brand-dots" aria-hidden="true">${"<i></i>".repeat(9)}</span>${t("product")}</a>
+  return `<a class="brand" href="#/" aria-label="${t("product")}, ${t("tagline")}">${MAPKIT.BRAND_PIN}<span>${t("product")}</span></a>
     <nav class="nav">${nav.map(([k, href, ic, label]) => `<a href="${href}" class="${r.nav === k ? "on" : ""}">${icon(ic, 16)}<span>${t(label)}</span></a>`).join("")}</nav>
     <div class="top-right">
       <span class="demo-tag">${t("demo")}</span>

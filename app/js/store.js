@@ -16,36 +16,40 @@ const STORE = {
   save() {
     try {
       const { lang, applied, userOrders, events } = this.state;
-      localStorage.setItem("rmk-v2", JSON.stringify({ lang, applied, userOrders, events: serialEvents(events) }));
+      localStorage.setItem(SAVE_KEY, JSON.stringify({ lang, applied, userOrders, events: serialEvents(events) }));
     } catch (_) { /* storage unavailable: keep in memory */ }
   },
-  reset() { try { localStorage.removeItem("rmk-v2"); } catch (_) {} location.hash = "#/"; location.reload(); },
+  reset() { try { localStorage.removeItem(SAVE_KEY); } catch (_) {} location.hash = "#/"; location.reload(); },
 };
 const TODAY = "12-11-2026";
+const SAVE_KEY = "netwijzer-v3"; // new key: old saved demo state (with removed projects) is ignored
 const serialEvents = (ev) => Object.fromEntries(Object.entries(ev).map(([k, list]) => [k, list.map((e) => ({ ...e }))]));
+
+// Demo focus: the 2-minute story uses a few projects only, so the map stays readable.
+// The full illustrative register stays in data/app/plans.json (the legacy app still uses all of it).
+const DEMO_PLANS = ["p-001", "p-002", "p-005"]; // solar park + business park in Veenoord, electrolyser in Emmen
 
 // Demo orders that show the ACM priority classes (all illustrative)
 const EXTRA_ORDERS = [
   { id: "d-bat", title_nl: "Netbatterij", title_en: "Grid battery", category: "battery", mw_offtake: 0, mw_feed_in: 0, mw_flex: 15, lat: 52.70, lon: 6.84, year_needed: 2027, maturity: "permit", party: "Demo" },
-  { id: "d-def", title_nl: "Uitbreiding defensielocatie", title_en: "Defence site expansion", category: "defence", mw_offtake: 6, mw_feed_in: 0, lat: 52.99, lon: 6.55, year_needed: 2028, maturity: "planned", party: "Demo" },
   { id: "d-hos", title_nl: "Uitbreiding ziekenhuis", title_en: "Hospital expansion", category: "hospital", mw_offtake: 4, mw_feed_in: 0, lat: 52.78, lon: 6.89, year_needed: 2028, maturity: "permit", party: "Demo" },
-  { id: "d-sch", title_nl: "Nieuwe school", title_en: "New school", category: "school", mw_offtake: 1, mw_feed_in: 0, lat: 52.72, lon: 6.86, year_needed: 2027, maturity: "planned", party: "Demo" },
 ];
-const MINE = ["p-001", "p-004"]; // the demo customer's own projects
+const MINE = ["p-001", "p-005"]; // the demo customer's own projects (a developer: solar park + electrolyser)
 
 async function loadData() {
   const get = (p) => fetch(p).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-  const [areas, upgrades, plans, lines, osm, realAreas, realLines, realStations, muni] = await Promise.all([
+  const [areas, upgrades, plans, lines, osm, realAreas, realLines, realStations, muni, outline] = await Promise.all([
     get("../data/app/areas.geojson"), get("../data/app/upgrades.json"), get("../data/app/plans.json"), get("../data/app/lines.json"),
     get("../data/drenthe-substations-osm.json"), get("../data/real/drenthe-supply-areas.geojson"),
     get("../data/real/drenthe-hv-lines.geojson"), get("../data/real/drenthe-hv-stations.geojson"), get("../data/drenthe-municipalities.geojson"),
+    get("../data/app/drenthe-outline.geojson"),
   ]);
   if (!areas || !upgrades || !plans) throw new Error("data/app not found");
   const stations = (Array.isArray(osm) ? osm : Object.values(osm || {}).find(Array.isArray) || []);
-  STORE.data = { areas, upgrades, plans, lines: lines || [], stations, realAreas, realLines, realStations, muni };
+  STORE.data = { areas, upgrades, plans: plans.filter((p) => DEMO_PLANS.includes(p.id)), lines: lines || [], stations, realAreas, realLines, realStations, muni, outline };
 
   try {
-    const saved = JSON.parse(localStorage.getItem("rmk-v2") || "null");
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
     if (saved) Object.assign(STORE.state, { lang: saved.lang || "nl", applied: saved.applied || STORE.state.applied, userOrders: saved.userOrders || [], events: saved.events || {} });
   } catch (_) { /* ignore */ }
   STORE.state.draft = JSON.parse(JSON.stringify(STORE.state.applied));
