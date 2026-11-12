@@ -1,0 +1,57 @@
+<!doctype html>
+<!-- App shell. Owner: Dev (Teammate A). Others: ask in Discord to add a <script> tag or a panel container. -->
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Regionale maatregelkaart</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1 id="title"></h1>
+    <span class="badge" id="demo-badge"></span>
+    <div class="controls">
+      <label><span id="year-label"></span> <strong id="year-value"></strong>
+        <input type="range" id="year" min="2026" max="2035" step="1" value="2026"></label>
+      <div class="toggle" id="direction">
+        <button data-dir="afname"></button><button data-dir="teruglevering"></button>
+      </div>
+      <div class="toggle" id="lang">
+        <button data-lang="nl">NL</button><button data-lang="en">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="map-wrap">
+      <div id="map"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <aside id="panel">
+      <nav class="tabs" id="tabs">
+        <button data-tab="location"></button>
+        <button data-tab="plans"></button>
+        <button data-tab="load"></button>
+        <button data-tab="scenarios"></button>
+      </nav>
+      <div class="tab" id="tab-location"></div>   <!-- customer.js -->
+      <div class="tab" id="tab-plans"></div>      <!-- customer.js -->
+      <div class="tab" id="tab-load"></div>       <!-- planning.js -->
+      <div class="tab" id="tab-scenarios"></div>  <!-- measures.js -->
+    </aside>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/customer.js"></script>
+  <script src="js/planning.js"></script>
+  <script src="js/measures.js"></script>
+</body>
+</html>

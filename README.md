@@ -65,8 +65,17 @@ CLAUDE.md            ← rules for Claude Code sessions working in this repo
 docs/PLAN.md         ← full plan: scope, features, architecture, timeline, tasks, open decisions
 docs/RESEARCH.md     ← ground-reality research with sources (what exists, pain points, instruments, data)
 docs/DATA-SCHEMA.md  ← the "plan card": the shared intake format
-data/                ← real open data we already have (municipality borders, TenneT substations)
-app/                 ← (coming) the web app: Vite + React + Leaflet
+docs/CONTRACT.md     ← how the app fits together: state, engine, data files, who owns which file
+index.html, css/, js/ ← the web app (static page, plain JS + Leaflet + Chart.js)
+scripts/             ← Python data pipeline (demo data, real capaciteitskaart fetch)
+data/                ← real open data (municipality borders, TenneT substations); data/app/ = app data
+```
+
+## Run the app
+
+```
+python -m http.server 8000      # in the repo root, then open http://localhost:8000
+python scripts/build_demo_data.py   # rebuild data/app/ (needs: pip install shapely scipy numpy)
 ```
 
 ## Mini glossary (Dutch → English)

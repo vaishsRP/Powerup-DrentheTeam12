@@ -1,0 +1,41 @@
+/* Owner: Dev (Teammate A). TenneT palette, see docs/PLAN.md §7. Others: put your styles in a clearly marked block. */
+:root {
+  --navy: #003584; --blue: #3C8CFA; --green: #33A92F; --grey: #F0ECEA;
+  --orange: #FF6428; --yellow: #FAC850; --steel: #75A8C1; --text: #1a1a1a;
+  --room: var(--green); --limited: var(--yellow); --bottleneck: var(--orange);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; font-family: Arial, Helvetica, sans-serif; color: var(--text); background: var(--grey); }
+body { display: flex; flex-direction: column; }
+
+header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: var(--navy); color: #fff; flex-wrap: wrap; }
+header h1 { font-size: 20px; margin: 0; }
+.badge { font-size: 12px; background: var(--yellow); color: var(--navy); padding: 2px 8px; border-radius: 10px; }
+.controls { margin-left: auto; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.controls input[type=range] { vertical-align: middle; width: 180px; }
+.toggle { display: inline-flex; border: 1px solid #fff; border-radius: 6px; overflow: hidden; }
+.toggle button { background: transparent; color: #fff; border: 0; padding: 4px 10px; cursor: pointer; font: inherit; }
+.toggle button.active { background: #fff; color: var(--navy); }
+
+main { flex: 1; display: flex; min-height: 0; }
+#map-wrap { flex: 1; position: relative; }
+#map { position: absolute; inset: 0; }
+.legend { position: absolute; bottom: 16px; left: 16px; z-index: 500; background: #fff; padding: 8px 12px; border-radius: 6px; font-size: 13px; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin: 0 6px 0 10px; vertical-align: -1px; }
+
+#panel { width: 420px; background: #fff; display: flex; flex-direction: column; border-left: 1px solid #ddd; }
+.tabs { display: flex; border-bottom: 1px solid #ddd; }
+.tabs button { flex: 1; padding: 10px 6px; border: 0; background: #fff; cursor: pointer; font: inherit; color: var(--navy); border-bottom: 3px solid transparent; }
+.tabs button.active { border-bottom-color: var(--blue); font-weight: bold; }
+.tab { display: none; padding: 14px 16px; overflow-y: auto; }
+.tab.active { display: block; }
+
+.tiles { display: flex; gap: 10px; margin: 10px 0; }
+.tile { flex: 1; background: var(--grey); border-radius: 6px; padding: 8px 10px; }
+.tile .v { font-size: 22px; font-weight: bold; color: var(--navy); }
+.status-room { color: var(--green); } .status-limited { color: #b8860b; } .status-bottleneck { color: var(--orange); }
+.flag-red { color: #d0021b; font-weight: bold; } .flag-orange { color: var(--orange); font-weight: bold; }
+.muted { color: #666; font-size: 12px; }
+.card { border: 1px solid #ddd; border-radius: 6px; padding: 8px 10px; margin: 8px 0; cursor: pointer; }
+.card.selected { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(60,140,250,.25); }
+button.action { background: var(--blue); color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; font: inherit; }

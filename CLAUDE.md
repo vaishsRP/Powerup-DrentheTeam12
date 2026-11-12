@@ -6,6 +6,7 @@ You are helping **Team 12** in the PowerUp Drenthe grid-congestion hackathon (Tr
 2. `docs/PLAN.md`: scope, features, architecture, engine logic, timeline, tasks, **open decisions**
 3. `docs/RESEARCH.md`: what already exists, pain points, instruments, data sources (with ✅ / 🔎 status)
 4. `docs/DATA-SCHEMA.md`: the plan card (shared intake format)
+5. `docs/CONTRACT.md`: how the app fits together (state, engine, data files, file ownership)
 
 ## Who you might be working for
 
@@ -46,13 +47,14 @@ Two of the three teammates **do not speak Dutch**. When you summarise Dutch sour
 - TenneT palette: navy `#003584`, blue `#3C8CFA`, green `#33A92F`, warm grey `#F0ECEA`, orange `#FF6428`, yellow `#FAC850`. Font Arial/Helvetica.
 - Lucide icons, **no emoji**, no flashy gradients. It must read well in a 1080p screen recording.
 
-## Tech (planned; update this section when the app exists)
+## Tech (decided Thu 14:10: simple static page instead of Vite + React)
 
-- `app/`: Vite + React (JavaScript, not TypeScript) + Leaflet (`react-leaflet`) + `lucide-react`. Static site; no backend.
-- Data: JSON in `app/src/data/`, following `docs/DATA-SCHEMA.md`; user-added plans go in `localStorage`.
-- Commands (once `app/` exists): `cd app && npm install && npm run dev` (local), `npm run build` (production build in `app/dist`).
-- Deployment: GitHub → Vercel auto-deploy (pending decision).
-- Map data: `data/drenthe-municipalities.geojson` (CBS 2025 borders) and `data/drenthe-substations-osm.json` (real TenneT 110/220 kV stations). Station areas = nearest-station (Voronoi) approximation.
+- **Read `docs/CONTRACT.md` before writing code.** It defines the shared state, the engine functions, the data files and who owns which file.
+- One static page: `index.html` + `css/style.css` + `js/*.js` (plain JavaScript, no framework, no build step) + `data/app/*`. Leaflet 1.9.4 and Chart.js 4.4.1 from cdnjs. No backend.
+- Run: `python -m http.server 8000` in the repo root → http://localhost:8000
+- Data pipeline (Python): `scripts/build_demo_data.py` → `data/app/`; `scripts/fetch_capaciteitskaart.py` → `data/real/` (real capaciteitskaart areas).
+- Deployment: GitHub Pages from `main` / root.
+- Map data: `data/drenthe-municipalities.geojson` (CBS 2025 borders) and `data/drenthe-substations-osm.json` (real TenneT 110/220 kV stations). Station areas = nearest-station (Voronoi) approximation until the real capaciteitskaart areas are in.
 
 ## Working together in git
 

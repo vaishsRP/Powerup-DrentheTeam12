@@ -107,9 +107,9 @@ Also planned:
 ## 6. Architecture
 
 **Prototype (what we build):** a static web app, with no server.
-- Vite + React (JavaScript) + Leaflet maps + Lucide icons.
-- Data = JSON files in the repo, following the plan-card format. New plans are saved in the browser (localStorage).
-- Deployment: GitHub → Vercel (auto-deploy on push). Fallback: Netlify Drop. **[DECIDE]**
+- **Decided Thu 14:10:** one static page (plain JavaScript + Leaflet + Chart.js, no build step) instead of Vite + React. Details: [CONTRACT.md](CONTRACT.md).
+- Data = JSON files in `data/app/`, following the plan-card format. New plans are saved in the browser (localStorage).
+- Deployment: GitHub Pages from `main` / root.
 
 **Target architecture (what we show in the pitch):**
 ```
