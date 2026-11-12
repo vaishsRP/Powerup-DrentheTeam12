@@ -182,7 +182,7 @@ const ProjectPage = {
           ${withdrawn(o) || askedWithdraw(o) ? "" : `<div class="withdraw" id="wd"><button type="button" class="btn btn-quiet" id="wd-ask">${icon("x", 16)} ${t("req_cancel")}</button>
             <div class="wd-confirm" hidden><p class="small">${t("req_cancel_q")}</p><p style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn btn-danger" id="wd-yes">${t("req_cancel_yes")}</button><button type="button" class="btn btn-quiet" id="wd-no">${t("req_cancel_no")}</button></p></div></div>`}
         </div>
-        <div class="sticky"><div class="map" id="map" style="height:560px"></div><p class="map-caption">${t("tbc")}: ${lang() === "nl" ? "stippellijn en grijze labels" : "dotted line and grey labels"}.</p><p class="map-caption">${t("grid_note")}</p></div>
+        <div class="sticky"><div class="map" id="map" style="height:560px"></div><p class="map-caption">${t("grid_note")}</p></div>
       </div></div>`;
   },
   mount(root, id) {
@@ -203,27 +203,25 @@ const ProjectPage = {
       STORE.save(); toast(`${t("option_requested")} ${t("o_" + b.dataset.opt).toLowerCase()}`); route();
     }));
     const dec = STORE.state.applied, sim = ENGINE.simulate(dec), r = sim.res[o.id], dir = ENGINE.oDir(o);
-    const map = MAPKIT.create(root.querySelector("#map"), { center: [o.lat, o.lon], zoom: 11 }), g = L.layerGroup().addTo(map);
+    // the customer can zoom in and out around their own project, but not move away from it
+    const map = MAPKIT.create(root.querySelector("#map"), { center: [o.lat, o.lon], zoom: 11, zoomOnly: true }), g = L.layerGroup().addTo(map);
     MAPKIT.drawRealAreas(g, dir, { subtle: true });
     const st = stationFor(o.area_id), pts = [[o.lat, o.lon]];
     if (st) {
       pts.push([st.lat, st.lon]);
       L.polyline([[o.lat, o.lon], [st.lat, st.lon]], { pane: "lines", color: MAPKIT.COL.navy, weight: 1.5, dashArray: "1 6", interactive: false }).addTo(g);
       L.circleMarker([st.lat, st.lon], { pane: "points", radius: 8, weight: 2, color: "#fff", fillColor: MAPKIT.COL.navy, fillOpacity: 1 }).addTo(g);
-      MAPKIT.label(g, st.lat, st.lon, `<b>${st.name.replace(/^\d+ kV /, "")}</b>, ${st.voltages_kv.join("/")} kV<br>${t("operational")}<br><span class="q">${t("tbc")}</span>`, "left", [-12, 0]);
       MAPKIT.drawLines(g, 2026, { near: [st.lat, st.lon], stationIds: [o.area_id] });
     }
     const ups = ENGINE.upgradesIn(o.area_id, dec).filter((u) => u.lat != null);
-    MAPKIT.drawUpgrades(g, dec, 2026, { only: ups.map((u) => u.id), labels: false });
-    for (const u of ups) {
-      pts.push([u.lat, u.lon]);
-      const y = ENGINE.upYear(u, dec), latest = y + Math.max(0, (u.year_latest ?? y) - u.year_feasible);
-      MAPKIT.label(g, u.lat, u.lon, `<b>${title(u)}</b><br>${t(ENGINE.upStatus(u, dec, 2026))}, ${latest > y ? `${y}–${latest}` : y}<br>` +
-        (r?.wait?.id === u.id && !pending(o) ? `<span class="k">${t("affects")}</span>` : `<span class="q">${t("tbc")}</span>`), "right", [14, 0]);
-    }
+    // grid-operator details (station status, upgrade years, whether it decides the date) are not shown to customers:
+    // only the markers, without labels or popups
+    MAPKIT.drawUpgrades(g, dec, 2026, { only: ups.map((u) => u.id), labels: false, popup: false });
+    for (const u of ups) pts.push([u.lat, u.lon]);
     MAPKIT.pin(g, o.lat, o.lon, `<b>${esc(title(o))}</b><br>${ENGINE.oMW(o)} MW`);
-    // the map can't be panned, so leave room for the labels on both sides
-    map.fitBounds(L.latLngBounds(pts).pad(0.15), { maxZoom: 11, paddingTopLeft: [232, 50], paddingBottomRight: [222, 50] });
+    // centre on the project: mirror every point around it so the fitted view keeps the project in the middle
+    const b = L.latLngBounds(pts.flatMap(([la, lo]) => [[la, lo], [2 * o.lat - la, 2 * o.lon - lo]]));
+    map.setView([o.lat, o.lon], Math.min(12, map.getBoundsZoom(b.pad(0.1), false, L.point(40, 110))));
     return () => map.remove();
   },
 };

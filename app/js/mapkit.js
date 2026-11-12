@@ -41,14 +41,14 @@ const MAPKIT = (() => {
   // Customer maps are fixed (only clicks; each page sets its own view). Planner maps pass interactive: true:
   // zoom and pan, kept inside Drenthe. scroll: false keeps the mouse wheel for scrolling the page.
   function create(el, opts = {}) {
-    const on = !!opts.interactive;
+    const on = !!opts.interactive, zo = !on && !!opts.zoomOnly; // zoomOnly: zoom around the centre, no panning
     const map = L.map(el, {
       zoomControl: false,
       dragging: on,
       scrollWheelZoom: on && opts.scroll !== false,
-      doubleClickZoom: on,
+      doubleClickZoom: on || (zo && "center"),
       boxZoom: false,
-      touchZoom: on,
+      touchZoom: on || (zo && "center"),
       keyboard: on,
       zoomDelta: 0.5,
       maxBounds: on ? DRENTHE.pad(0.25) : null,
@@ -63,12 +63,14 @@ const MAPKIT = (() => {
     L.tileLayer("https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/grijs/EPSG:3857/{z}/{x}/{y}.png", {
       attribution: 'Kaart <a href="https://www.pdok.nl">PDOK</a> · CBS/PDOK · Capaciteitskaart Netbeheer Nederland · TenneT · Enexis IP2026 · © OpenStreetMap', maxZoom: 15,
     }).addTo(map);
-    if (on) {
+    if (on || zo) {
       L.control.zoom({ position: "bottomright" }).addTo(map);
+      if (zo) map.setMaxZoom(14);
       // never zoomed out much beyond the whole province
       const minZ = () => { if (map._mapPane && map._containerId && map._loaded) map.setMinZoom(map.getBoundsZoom(DRENTHE) - 0.5); };
       setTimeout(minZ, 100); map.on("resize", minZ);
-    } else {
+    }
+    if (!on) {
       // A popup near the edge may pan a fixed map to fit; put the view back when it closes.
       let home = null;
       map.on("moveend", () => { if (map._mapPane && map._containerId && !map._popup?.isOpen()) home = { c: map.getCenter(), z: map.getZoom() }; });
@@ -186,8 +188,8 @@ const MAPKIT = (() => {
       const st = ENGINE.upStatus(u, dec, year), risk = st !== "operational" && ENGINE.atRisk(u, dec);
       const color = st === "operational" ? COL.room : st === "under_construction" ? COL.build : risk ? COL.shortage : COL.blue;
       const y = ENGINE.upYear(u, dec), latest = y + Math.max(0, (u.year_latest ?? u.year_feasible) - u.year_feasible);
-      const m = L.circleMarker([u.lat, u.lon], { pane: "points", radius: 11, weight: 3, color, dashArray: st === "operational" ? null : "4 3", fillColor: "#fff", fillOpacity: 0.7 })
-        .bindPopup(upgradePopup(u, dec, year)).addTo(g);
+      const m = L.circleMarker([u.lat, u.lon], { pane: "points", radius: 11, weight: 3, color, dashArray: st === "operational" ? null : "4 3", fillColor: "#fff", fillOpacity: 0.7, interactive: opts.popup !== false }).addTo(g);
+      if (opts.popup !== false) m.bindPopup(upgradePopup(u, dec, year));
       const yrs = latest > y ? `${y}–${latest}` : `${y}`;
       // labels: true (all), "risk" (only delayed/uncertain ones get a year label; the rest show it in the popup), false (none)
       if (opts.labels !== false && st !== "operational" && (opts.labels !== "risk" || risk))
