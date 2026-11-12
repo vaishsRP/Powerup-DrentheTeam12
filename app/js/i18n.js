@@ -79,6 +79,7 @@ const TEXT = {
     ev_review: "De netbeheerder beoordeelt uw aanvraag. Hierna krijgt u een eerste inschatting.", ev_confirmed: "Eerste inschatting van de netbeheerder", // NL?
     rv_title: "Nieuwe aanvragen te beoordelen", rv_lead: "Controleer het voorstel van het model en stuur de inschatting naar de klant.", rv_model: "Voorstel", rv_send: "Bevestigen en versturen", rv_sent: "Inschatting verstuurd naar de klant", // NL?
     sim_upg_lead: "Kies een gebied om de netuitbreidingen daar te zien, of kies er hieronder een.", sim_upg_pick: "Netuitbreiding toevoegen…", sim_upg_ready: "Klaar in", sim_upg_off: "Niet uitvoeren", sim_upg_hide: "Uit de lijst halen", // NL?
+    sim_projects: "Projecten", sim_projects_lead: "Klik een project om zijn gebied en netuitbreidingen te kiezen.", sim_scope_area: "Dit gebied", sim_scope_all: "Heel Drenthe", sim_projects_none: "Geen projecten in dit gebied.", // NL?
     sim_new: "Nieuwe netuitbreiding", sim_new_kind: "Soort", sim_new_mw: "Extra capaciteit (MW)", sim_new_btn: "Toevoegen in {area}", sim_new_tag: "nieuw", // NL?
     k_transformer: "Trafo-uitbreiding", k_new_station: "Nieuw station", k_line: "Verzwaring verbinding", because_upg_off: "omdat {u} niet doorgaat", // NL?
     view_proj_legend: "verwachte status per gebied", // NL?
@@ -189,6 +190,7 @@ const TEXT = {
     ev_review: "The grid operator is reviewing your request. You'll get a first estimate next.", ev_confirmed: "First estimate from the grid operator",
     rv_title: "New requests to review", rv_lead: "Check the model's proposal and send the estimate to the customer.", rv_model: "Proposal", rv_send: "Confirm and send", rv_sent: "Estimate sent to the customer",
     sim_upg_lead: "Choose an area to see its grid upgrades, or pick one below.", sim_upg_pick: "Add a grid upgrade…", sim_upg_ready: "Ready in", sim_upg_off: "Don't build", sim_upg_hide: "Remove from the list",
+    sim_projects: "Projects", sim_projects_lead: "Click a project to choose its area and grid upgrades.", sim_scope_area: "This area", sim_scope_all: "All of Drenthe", sim_projects_none: "No projects in this area.",
     sim_new: "New grid upgrade", sim_new_kind: "Type", sim_new_mw: "Extra capacity (MW)", sim_new_btn: "Add in {area}", sim_new_tag: "new",
     k_transformer: "Transformer upgrade", k_new_station: "New station", k_line: "Line upgrade", because_upg_off: "because {u} will not go ahead",
     view_proj_legend: "expected status per area",

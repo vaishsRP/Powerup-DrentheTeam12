@@ -502,6 +502,24 @@ const AreaPage = {
 // =====================================================================================  PLANNER: simulator
 const SimPage = {
   picked: [], // grid upgrades the planner added to the list (view only, not part of the decision)
+  scope: null, // project list: "area" (the chosen area) or "all" (all of Drenthe)
+  // every project (or the chosen area's), with its date now and after this draft decision; a click picks its area
+  projects(sim) {
+    const s = STORE.state, scope = this.scope ?? (s.simArea ? "area" : "all"), now = ENGINE.simulate(s.applied);
+    const rank = { not_possible: 0, delayed: 1, proceeds: 2 };
+    const list = ENGINE.orders().filter((o) => o.category !== "battery" && (scope === "all" || o.area_id === s.simArea))
+      .sort((a, b) => (rank[sim.res[a.id]?.status] ?? 3) - (rank[sim.res[b.id]?.status] ?? 3) || (ENGINE.area(a.area_id)?.name || "").localeCompare(ENGINE.area(b.area_id)?.name || ""));
+    const rows = list.map((o) => {
+      const r0 = now.res[o.id], r1 = sim.res[o.id], e0 = ENGINE.estRange(r0), e1 = ENGINE.estRange(r1);
+      return `<button type="button" class="proj-row ${o.area_id === s.simArea ? "on" : ""}" data-proj="${o.area_id}">
+        <span class="pr-main"><b>${esc(title(o))}</b>${o.mine ? ` ${pill("s-neutral", t("role_customer"))}` : ""}${pending(o) ? ` ${pill("s-neutral", t("in_review"))}` : ""}
+          <span class="pr-sub">${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()} · ${esc(ENGINE.area(o.area_id)?.name || "")} · ${t(ENGINE.isFormal(o) ? "formal" : "early")}</span></span>
+        <span class="pr-end">${e0 !== e1 ? `<span class="from">${e0}</span> ` : ""}<b>${e1}</b>${pill(STATUS_CLASS[r1?.status] || "s-neutral", t(r1?.status || "proceeds"))}</span></button>`;
+    }).join("");
+    return `<div class="side-h" style="padding:18px 0 4px"><h2>${t("sim_projects")} (${list.length})</h2><p class="small muted">${t("sim_projects_lead")}</p></div>
+      <div class="seg" style="margin:6px 0 8px"><button type="button" data-scope="area" class="${scope === "area" ? "on" : ""}" ${s.simArea ? "" : "disabled"}>${s.simArea ? esc(ENGINE.area(s.simArea).name) : t("sim_scope_area")}</button><button type="button" data-scope="all" class="${scope === "all" ? "on" : ""}">${t("sim_scope_all")}</button></div>
+      ${rows || `<p class="small muted">${t("sim_projects_none")}</p>`}`;
+  },
   html() {
     return `<div class="sim">
       <aside id="sim-left"></aside>
@@ -517,7 +535,7 @@ const SimPage = {
     const draw = () => {
       const sim = ENGINE.simulate(s.draft), D = ENGINE.diff(s.applied, s.draft);
       g.clearLayers();
-      MAPKIT.drawProjAreas(g, sim, s.dir, s.year, { selected: s.simArea, onClick: (id) => { s.simArea = id; draw(); } });
+      MAPKIT.drawProjAreas(g, sim, s.dir, s.year, { selected: s.simArea, onClick: (id) => { s.simArea = id; this.scope = "area"; draw(); } });
       MAPKIT.drawUpgrades(g, s.draft, s.year, { labels: "risk" });
       MAPKIT.drawOrders(g, sim, {});
       const areaOpts = STORE.data.areas.features.map((f) => `<option value="${f.properties.id}" ${f.properties.id === s.simArea ? "selected" : ""}>${esc(f.properties.name)}</option>`).join("");
@@ -568,7 +586,10 @@ const SimPage = {
           <span class="from">${c.from ? ENGINE.estRange(c.from) : "–"}</span> <span class="to">${c.to ? ENGINE.estRange(c.to) : "–"}</span> ${c.to ? pill(STATUS_CLASS[c.to.status], t(c.to.status)) : ""}
           <span class="why">${reasonText(c.reason)}</span></div>`).join("") : `<div class="empty" style="margin-top:12px">${t("no_change")}</div>`}
         <p style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="s-apply" ${D.out.length ? "" : "disabled"}>${icon("bell")} ${t("confirm")}</button>
-        <button class="btn btn-quiet" id="s-reset">${icon("undo-2")} ${t("reset")}</button></p>`;
+        <button class="btn btn-quiet" id="s-reset">${icon("undo-2")} ${t("reset")}</button></p>
+        ${this.projects(sim)}`;
+      right.querySelectorAll("[data-scope]").forEach((b) => (b.onclick = () => { this.scope = b.dataset.scope; draw(); }));
+      right.querySelectorAll("[data-proj]").forEach((b) => (b.onclick = () => { s.simArea = b.dataset.proj; this.scope = "area"; draw(); }));
       left.querySelectorAll("#s-dir button").forEach((b) => (b.onclick = () => { s.dir = b.dataset.d; draw(); }));
       left.querySelector("#s-yr").oninput = (e) => { s.year = +e.target.value; left.querySelector("#s-yv").textContent = s.year; };
       left.querySelector("#s-yr").onchange = () => draw();
@@ -604,7 +625,7 @@ const SimPage = {
       left.querySelectorAll("#s-mw-pre button").forEach((b) => (b.onclick = () => setMW(b.dataset.mw)));
       left.querySelector("#s-mw").onchange = (e) => setMW(e.target.value);
       left.querySelectorAll("[data-unbat]").forEach((b) => (b.onclick = () => { s.draft.batteries = s.draft.batteries.filter((x) => x.id !== b.dataset.unbat); draw(); }));
-      left.querySelector("#s-area").onchange = (e) => { s.simArea = e.target.value || null; draw(); };
+      left.querySelector("#s-area").onchange = (e) => { s.simArea = e.target.value || null; this.scope = s.simArea ? "area" : "all"; draw(); };
       left.querySelector("#s-bat").onclick = () => {
         const f = STORE.data.areas.features.find((x) => x.properties.id === s.simArea); if (!f) return;
         const c = L.geoJSON(f).getBounds().getCenter();
