@@ -339,13 +339,16 @@ const OverviewPage = {
     const late = ENGINE.upgrades(s.applied).filter((u) => ENGINE.upYear(u, s.applied) > u.year_desired).length;
     const st = ENGINE.realStats();
     const rows = ids.map((id) => ({ id, d: ENGINE.deadline(sim, id, s.dir), now: ENGINE.areaStatus(sim, id, s.dir, s.year) }))
-      .sort((a, b) => (a.d?.first ?? 9999) - (b.d?.first ?? 9999));
+      .sort((a, b) => (a.d?.first ?? 9999) - (b.d?.first ?? 9999) || b.now.unmet - a.now.unmet || b.now.ratio - a.now.ratio);
+    const un = rows.reduce((t2, r) => ({ f: t2.f + r.now.unmetFormal, e: t2.e + r.now.unmetEarly }), { f: 0, e: 0 });
     const firstDec = rows.find((r) => r.d)?.d;
     return `<div class="kpis">
         <div><b>${bn} / ${ids.length}</b><span>${t("k_bottlenecks")} ${s.year}</span></div>
         <div><b class="${late ? "bad" : ""}">${late}</b><span>${t("k_delayed")}</span></div>
         <div><b>${Math.round(st.mw).toLocaleString(lang() === "nl" ? "nl-NL" : "en-GB")}</b><span>${t("k_queue")}</span></div>
         <div><b class="${firstDec?.late ? "bad" : ""}">${firstDec ? (firstDec.late ? t("too_late") : `${t("pmiek")} ${firstDec.pmiek}`) : "–"}</b><span>${t("k_first")} (${t("model_short")})</span></div>
+        <div><b class="${un.f + un.e >= 0.5 ? "bad" : ""}">${Math.round(un.f + un.e)} MW</b><span>${t("k_unmet", { y: s.year })}</span></div>
+        <div><b>${Math.round(un.f)} / ${Math.round(un.e)} MW</b><span>${t("k_unmet_split")}</span></div>
       </div>
       ${this.reviews(sim)}
       <div class="side-h"><h2>${t("attention")}</h2><p class="small muted">${t("attention_lead")}</p></div>
@@ -353,7 +356,7 @@ const OverviewPage = {
         <h3>${esc(ENGINE.area(r.id).name)}</h3>${pill(STATUS_CLASS[r.now.status], t(r.now.status))}
         <div class="sub">${meter(r.now.ratio)}<span>${r.d ? `${t("first_bn")} ${r.d.first}` : t("none_bn")}</span>
         ${r.d ? `<span style="color:${r.d.late ? "var(--shortage-tx)" : "inherit"}">${r.d.late ? t("too_late") : `${t("pmiek")} ${r.d.pmiek} (${t("model_short")})`}</span>` : ""}
-        ${r.now.unmet >= 0.5 ? `<span>${Math.round(r.now.unmet)} MW ${t("unmet_short")} ${s.year}</span>` : ""}</div></a>`).join("")}
+        ${r.now.unmet >= 0.5 ? `<span class="unmet">${Math.round(r.now.unmet)} MW ${t("unmet_short")} ${s.year}</span>` : ""}</div></a>`).join("")}
       ${rows.some((r) => !(r.d || r.now.status !== "room")) ? `<button class="show-all" id="show-all">${s.showAll ? t("show_less") : t("show_all", { n: rows.length })}</button>` : ""}`;
   },
 };

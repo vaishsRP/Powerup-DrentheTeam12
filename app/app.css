@@ -376,3 +376,4 @@ footer .in { max-width: 1240px; margin: 0 auto; }
 .ytable tr.un td { color: #B4364A; }
 .ytable tr.short td { color: var(--shortage-tx); font-weight: 700; }
 @media (max-width: 700px) { .dec { grid-template-columns: 1fr; } }
+.area-row .unmet { color: var(--shortage-tx); font-weight: 700; }

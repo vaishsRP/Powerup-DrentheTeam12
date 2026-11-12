@@ -64,7 +64,7 @@ const TEXT = {
     who_op: "{op} (netbeheerder)", who_op_you: "{op} (netbeheerder), daarna u", netbeheerder: "netbeheerder", // NL?
     next_review: "Een expert van de netbeheerder beoordeelt uw aanvraag en stuurt u een eerste inschatting.", // NL?
     c_load: "Belasting (aangesloten)", c_unmet_f: "Niet ingepast: formele aanvragen", c_unmet_e: "Niet ingepast: plannen in vroeg stadium", c_short: "Tekort", // NL?
-    unmet_short: "niet ingepast in", formal: "formele aanvraag", early: "plan in vroeg stadium", // NL?
+    unmet_short: "niet ingepast in", k_unmet: "MW niet ingepast in {y}", k_unmet_split: "waarvan formele aanvragen / plannen", formal: "formele aanvraag", early: "plan in vroeg stadium", // NL?
     unmet_note: "Niet ingepast = vraag die voor dat jaar is aangevraagd maar nog niet past. Die telt mee in de status, zodat een jaar niet vrij lijkt omdat projecten naar later zijn geschoven.", // NL?
     dec_shortfall: "Grootste tekort ({y})", dec_split: "niet ingepast: {f} MW formele aanvragen, {e} MW plannen", dec_projects: "Projecten die hierop wachten", // NL?
     dec_next: "Volgende actie", next_moment: "Eerstvolgende besluitmoment", dec_owner: "Eigenaar", dec_due: "Besluit uiterlijk", dec_block: "Wat houdt het op", // NL?
@@ -175,7 +175,7 @@ const TEXT = {
     who_op: "{op} (grid operator)", who_op_you: "{op} (grid operator), then you", netbeheerder: "grid operator",
     next_review: "An expert at the grid operator reviews your request and sends you a first estimate.",
     c_load: "Load (connected)", c_unmet_f: "Not fitted: formal requests", c_unmet_e: "Not fitted: early-stage plans", c_short: "Shortfall",
-    unmet_short: "not fitted in", formal: "formal request", early: "early-stage plan",
+    unmet_short: "not fitted in", k_unmet: "MW not fitted in {y}", k_unmet_split: "of which formal requests / plans", formal: "formal request", early: "early-stage plan",
     unmet_note: "Not fitted = demand requested for that year that doesn't fit yet. It counts in the status, so a year never looks free because projects were pushed to later.",
     dec_shortfall: "Biggest shortfall ({y})", dec_split: "not fitted: {f} MW formal requests, {e} MW plans", dec_projects: "Projects waiting on this",
     dec_next: "Next action", next_moment: "Next decision moment", dec_owner: "Owner", dec_due: "Decision due", dec_block: "What is holding it up",
