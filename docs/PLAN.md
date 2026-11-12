@@ -107,7 +107,8 @@ Sources                      Intake                 Register                Engi
   - contracted only / expected (weighted) / everything
   - grid upgrades on time / delayed
 - **Capacity per year:** base capacity + upgrades whose year has arrived.
-- **Status:** Room < 80 % ≤ Limited ≤ 100 % < Bottleneck. These are the teammate mockup's three levels. **[DECIDE]** Should they align to the capaciteitskaart's four categories instead?
+- **Grounding for the weighting:** TenneT itself weights its scenarios KM 50 % / EV 25 % / GB 25 % and gives bottlenecks a likelihood below 1 (RESEARCH.md §10). Our maturity weights apply the same idea per plan, so cite that when asked "why weights?".
+- **Status:** Room < 80 % ≤ Limited ≤ 100 % < Bottleneck. (TenneT counts 2035/2040 overloads only from 110 %. Consider the same for far-future years.) These are the teammate mockup's three levels. **[DECIDE]** Should they align to the capaciteitskaart's four categories instead?
 - **Deadline:** if area X needs extra capacity by year *Y* and a grid upgrade takes *L* years, the upgrade must be in the investment plan of Jan (*Y − L*). That plan is based on the pMIEK of Feb (*Y − L − 1*). If that date has passed, the tool says "only measures can help" and points to the measures. *L* depends on the measure type, using Enexis IP2026 averages:
   - transformer upgrade ≈ 1 yr
   - station extension ≈ 4 yrs

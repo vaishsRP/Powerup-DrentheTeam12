@@ -255,3 +255,48 @@ The table also lists MW shortfall ranges across 3 scenarios (e.g., Hoogeveen off
 | verkenningsproject | exploratory project |
 | zienswijze | consultation response |
 | netbewust bouwen | grid-aware building |
+
+## 10. TenneT investment plan 2026 (Net op land): Drenthe bottlenecks and projects
+
+Sources: [main plan (PDF)](https://tennet-drupal.s3.eu-central-1.amazonaws.com/default/2026-04/Investeringsplan%202026%20Net%20op%20land.pdf) (MP), [Annex 4](https://tennet-drupal.s3.eu-central-1.amazonaws.com/default/2026-01/Bijlage%204%20koppeling%20projecten%20aan%20knelpunten_0.pdf) and [Annex 5](https://tennet-drupal.s3.eu-central-1.amazonaws.com/default/2026-01/Bijlage%205%20koppeling%20knelpunten%20aan%20projecten.pdf).
+
+**How TenneT plans:**
+- **Horizon:** 2026–2040, renewed every 2 years. Study years: 2026, 2030, 2035, 2040. Project data was frozen on 1 Sept 2025. 🔎
+- **Likelihood is explicit.** TenneT weights its scenarios **KM 50 %, EV 25 %, GB 25 %**; a bottleneck that doesn't appear in all scenarios gets likelihood < 1 ✅. In 2035 and 2040, an overload only counts as a bottleneck **from 110 %** ✅. → Our certainty weighting is the same idea, applied to individual plans instead of scenarios.
+- **pMIEK status raises priority** ("Very high"), but "does not directly lead to an earlier commissioning date" (MP p.43). 🔎
+- **Information gaps.** Where information about the future "is too little concrete", TenneT uses model assumptions; battery and power-to-X locations are especially uncertain (MP p.32) 🔎. → A register with location, MW, year and maturity fills exactly this.
+- **Standard lead times** (MP Table 5.3; numbers ✅, row labels re-read from a garbled table):
+
+  | Work | Study | Basic design | Realisation | Total (yrs) |
+  |---|---|---|---|---|
+  | 110/150 kV cable | 1 | 2 | 4 | 7 |
+  | 110/150 kV station | 1.5 | 2 | 4 | **7.5** |
+  | 220/380 kV line | 1 | 4 | 10 | 15 |
+  | 220/380 kV station | 1.5 | 4 | 8 | **13.5** |
+
+**Drenthe projects** (commissioning per IP2026, with IP2024 in brackets; 🔎 unless noted):
+
+| Project | What | In service | Notes |
+|---|---|---|---|
+| Musselkanaal 380/110 kV (Groningen side) | new station | 2026 (2027) | ahead of plan; serves east Drenthe |
+| Zeyerveen 220 kV transformers | install/replace | 2029–30 (2027) | "two transformers placed, offtake congestion lifted" |
+| Veenoord-Boerdijk 110 kV | new station | 2031–33 (2029–31) | delayed by contractor shortage |
+| Veenoord-Boerdijk 380 kV | new station | 2031–34 (2029) | |
+| Bargermeer–Meeden 110 kV | line upgrade | 2031–34 (2028) | |
+| **Deelnet Emmen** | split the Emmen 110 kV sub-grid | 2031–33 | in pMIEK; feed-in driven |
+| DONS 380/220 kV (Drents-Overijssel grid reinforcement) | reinforcement | 2033–36 (2029–31) | sub-project Wijster 2029 |
+| Gasselte–Veendam–Meeden | line upgrade, now underground cable | 2033–35 (2027) | **6-year delay** |
+
+- Main-plan Table 9.1 classifies **Deelnet Emmen, Veenoord-Boerdijk, Bargermeer–Meeden and Gasselte–Veendam–Meeden as feed-in ("productie") driven**. This fits "no feed-in room in Drenthe".
+- **Real MW of overload** (KM scenario, N-1 contingency, i.e. with one component out; MP Annex 7) 🔎:
+  - 2030: Zeijerveen–Beilen 53 MW; Hoogeveen–Dedemsvaart 35 MW; Zwartsluis–Meppel 38 MW.
+  - 2035: Veenoord-Boerdijk–Bargermeer 85 MW; Emmen Weerdinge–Bargermeer 64 MW.
+- **Full Drenthe bottleneck list:** Annex 5 has ~35 Drenthe rows (IDs, asset, type per study year, linked projects). A parsed copy exists locally with the dev; ask if you need it.
+- **Annex codes:**
+  - n-1 / n-2: capacity under contingency
+  - rail n-1: busbar
+  - kw: asset condition
+  - 100MW/6u: 100 MW / 6 h criterion
+  - Ik: short-circuit withstand
+
+  Phases: Studie (study) → Basisontwerp (basic design) → Realisatie (realisation).
