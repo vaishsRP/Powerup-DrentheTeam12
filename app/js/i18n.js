@@ -70,7 +70,7 @@ const TEXT = {
     real_here: "Echte capaciteitskaart in dit gebied", test_sim: "Test een besluit",
     // simulator
     sim_title: "Wat gebeurt er als…", sim_lead: "Verander een besluit. De wachtrij wordt opnieuw verdeeld.",
-    sim_upg: "Jaar in bedrijf van netuitbreidingen", sim_bat: "Batterij plaatsen", sim_bat_btn: "Plaats 20 MW batterij", sim_choose: "Kies een gebied",
+    sim_upg: "Jaar in bedrijf van netuitbreidingen", sim_bat: "Batterij plaatsen", sim_bat_btn: "Plaats {mw} MW batterij", sim_bat_mw: "Vermogen batterij (MW)", sim_bat_placed: "Geplaatst in dit besluit", sim_bat_remove: "Verwijder", sim_choose: "Kies een gebied", // NL?
     sim_withdraw: "Aanvraag intrekken", effect: "Effect op aanvragen", now: "nu", after: "na besluit",
     no_change: "Nog geen verschil. Verander links een besluit.", confirm: "Besluit vastleggen en klanten informeren", reset: "Terugzetten",
     informed: "Besluit vastgelegd. {n} klanten zien de wijziging in hun tijdlijn.",
@@ -157,7 +157,7 @@ const TEXT = {
     queue_title: "Queue in this area", queue_lead: "In order of priority (ACM framework), then by date.",
     real_here: "Real capacity map in this area", test_sim: "Test a decision",
     sim_title: "What happens if…", sim_lead: "Change a decision. The queue is shared out again.",
-    sim_upg: "Year in service of grid upgrades", sim_bat: "Place a battery", sim_bat_btn: "Place a 20 MW battery", sim_choose: "Choose an area",
+    sim_upg: "Year in service of grid upgrades", sim_bat: "Place a battery", sim_bat_btn: "Place a {mw} MW battery", sim_bat_mw: "Battery power (MW)", sim_bat_placed: "Placed in this decision", sim_bat_remove: "Remove", sim_choose: "Choose an area",
     sim_withdraw: "Withdraw request", effect: "Effect on requests", now: "now", after: "after decision",
     no_change: "No difference yet. Change a decision on the left.", confirm: "Record decision and notify customers", reset: "Reset",
     informed: "Decision recorded. {n} customers see the change in their timeline.",

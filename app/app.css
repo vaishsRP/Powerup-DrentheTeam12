@@ -295,6 +295,12 @@ footer .in { max-width: 1240px; margin: 0 auto; }
 .change .from { color: var(--muted); text-decoration: line-through; }
 .change .to { font-weight: 800; color: var(--ink); }
 .change .why { display: block; font-size: var(--fs-xs); color: var(--muted); margin-top: 2px; }
+.bat-mw { display: flex; gap: 8px; align-items: center; }
+.bat-mw input { width: 90px; }
+.bat-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
+.bat-row .ic { color: var(--leaf); }
+.bat-row span { flex: 1; }
+.bat-row .btn { padding: 4px 6px; }
 .empty { padding: 28px; text-align: center; color: var(--muted); border: 1px dashed var(--line-2); border-radius: var(--r-lg); background: var(--white); }
 
 /* ---------- about ---------- */

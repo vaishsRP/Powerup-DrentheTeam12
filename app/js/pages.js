@@ -419,6 +419,7 @@ const SimPage = {
   },
   mount(root) {
     const s = STORE.state, map = MAPKIT.create(root.querySelector("#map")), g = L.layerGroup().addTo(map);
+    s.batMW ??= 20; // battery size for the next "place battery"
     const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]]); }, 60);
     MAPKIT.legend(map, MAPKIT.legendProj(), "bottomleft", { wide: true });
     const left = root.querySelector("#sim-left"), right = root.querySelector("#sim-right");
@@ -439,7 +440,11 @@ const SimPage = {
             <input type="range" min="${u.year_desired}" max="2036" value="${y}" data-up="${u.id}" aria-label="${title(u)}"></div>`; }).join("")}
         <h3 style="margin-top:18px">${t("sim_bat")}</h3>
         <div class="field"><select id="s-area"><option value="">${t("sim_choose")}</option>${areaOpts}</select></div>
-        <button class="btn" id="s-bat" ${s.simArea ? "" : "disabled"}>${icon("battery-charging")} ${t("sim_bat_btn")}</button>
+        <div class="field"><label for="s-mw">${t("sim_bat_mw")}</label>
+          <div class="bat-mw"><span class="seg" id="s-mw-pre">${[5, 10, 20, 50].map((v) => `<button type="button" data-mw="${v}" class="${v === s.batMW ? "on" : ""}">${v}</button>`).join("")}</span>
+          <input id="s-mw" type="number" min="1" max="200" step="1" value="${s.batMW}" aria-label="${t("sim_bat_mw")}"></div></div>
+        <button class="btn" id="s-bat" ${s.simArea ? "" : "disabled"}>${icon("battery-charging")} ${t("sim_bat_btn", { mw: s.batMW })}</button>
+        ${s.draft.batteries.length ? `<p class="small muted" style="margin-top:12px">${t("sim_bat_placed")}</p>${s.draft.batteries.map((b) => `<div class="bat-row">${icon("battery-charging", 16)}<span><b>${b.mw_flex} MW</b> · ${esc(ENGINE.area(b.area_id)?.name || "")}</span><button type="button" class="btn btn-quiet" data-unbat="${b.id}" aria-label="${t("sim_bat_remove")}">${icon("x", 14)}</button></div>`).join("")}` : ""}
         ${q.length ? `<h3 style="margin-top:18px">${t("sim_withdraw")}</h3>${q.map((o) => `<label style="display:flex;gap:8px;align-items:center;font-size:13px;padding:4px 0"><input type="checkbox" data-cancel="${o.id}" ${s.draft.cancelled.includes(o.id) ? "checked" : ""}> ${esc(title(o))}, ${ENGINE.oMW(o)} MW</label>`).join("")}` : ""}`;
       right.innerHTML = `<h2>${t("effect")}</h2><p class="small muted">${t("now")} → ${t("after")}</p>
         <div class="compare">${["proceeds", "delayed", "not_possible"].map((k, i) => `<div><b>${D.before[i]} → ${D.after[i]}</b><span>${t(k)}</span></div>`).join("")}</div>
@@ -452,12 +457,17 @@ const SimPage = {
       left.querySelector("#s-yr").oninput = (e) => { s.year = +e.target.value; left.querySelector("#s-yv").textContent = s.year; };
       left.querySelector("#s-yr").onchange = () => draw();
       left.querySelectorAll("[data-up]").forEach((i) => (i.onchange = () => { s.draft.upgradeYears = { ...s.draft.upgradeYears, [i.dataset.up]: +i.value }; draw(); }));
+      const setMW = (v) => { s.batMW = Math.max(1, Math.min(200, Math.round(+v) || 20)); draw(); };
+      left.querySelectorAll("#s-mw-pre button").forEach((b) => (b.onclick = () => setMW(b.dataset.mw)));
+      left.querySelector("#s-mw").onchange = (e) => setMW(e.target.value);
+      left.querySelectorAll("[data-unbat]").forEach((b) => (b.onclick = () => { s.draft.batteries = s.draft.batteries.filter((x) => x.id !== b.dataset.unbat); draw(); }));
       left.querySelector("#s-area").onchange = (e) => { s.simArea = e.target.value || null; draw(); };
       left.querySelector("#s-bat").onclick = () => {
         const f = STORE.data.areas.features.find((x) => x.properties.id === s.simArea); if (!f) return;
         const c = L.geoJSON(f).getBounds().getCenter();
-        s.draft.batteries = [...s.draft.batteries, { id: "b-" + Date.now(), title_nl: "Netbatterij 20 MW", title_en: "Grid battery 20 MW", category: "battery",
-          mw_offtake: 0, mw_feed_in: 0, mw_flex: 20, lat: c.lat, lon: c.lng, area_id: s.simArea, year_needed: 2027, maturity: "planned", priority: 1, request_seq: 5000 + s.draft.batteries.length }];
+        const mw = Math.max(1, Math.min(200, Math.round(s.batMW) || 20));
+        s.draft.batteries = [...s.draft.batteries, { id: "b-" + Date.now(), title_nl: `Netbatterij ${mw} MW`, title_en: `Grid battery ${mw} MW`, category: "battery",
+          mw_offtake: 0, mw_feed_in: 0, mw_flex: mw, lat: c.lat, lon: c.lng, area_id: s.simArea, year_needed: 2027, maturity: "planned", priority: 1, request_seq: 5000 + s.draft.batteries.length }];
         draw();
       };
       left.querySelectorAll("[data-cancel]").forEach((i) => (i.onchange = () => {
