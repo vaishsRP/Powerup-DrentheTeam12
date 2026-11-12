@@ -1,0 +1,90 @@
+"""
+Fetch REAL high-voltage grid infrastructure around Drenthe for the map's infrastructure layer.
+
+1. TenneT high-voltage assets (stations, lines, cables) from TenneT's public ArcGIS service
+   "TenneT_Assets_Hoogspanning". Attribution: "Bron: TenneT".
+2. Substations under construction from OpenStreetMap (tag construction:power=substation), see data/README.md.
+   Attribution: "© OpenStreetMap contributors" (ODbL).
+
+Usage (repo root):  pip install requests   then   python scripts/fetch_grid_infrastructure.py
+Output (map.js picks these up automatically when present):
+  data/real/tennet-lines.geojson      lines/cables touching Drenthe
+  data/real/tennet-stations.geojson   stations touching Drenthe
+  data/real/osm-construction.geojson  substations under construction in Drenthe
+Prints each layer's fields so you can check what came back.
+"""
+import json
+import os
+import requests
+
+TENNET = "https://services-eu1.arcgis.com/WjozPuR5ROn6NZE8/arcgis/rest/services/TenneT_Assets_Hoogspanning/FeatureServer"
+BBOX = "6.10,52.60,7.15,53.20"  # around Drenthe, WGS84
+os.makedirs("data/real", exist_ok=True)
+
+
+def esri_geom(g):
+    if not g:
+        return None
+    if "paths" in g:
+        return {"type": "MultiLineString", "coordinates": g["paths"]}
+    if "rings" in g:
+        return {"type": "MultiPolygon", "coordinates": [[r] for r in g["rings"]]}
+    if "x" in g:
+        return {"type": "Point", "coordinates": [g["x"], g["y"]]}
+    return None
+
+
+def query(layer_id):
+    feats, offset = [], 0
+    while True:
+        d = requests.get(f"{TENNET}/{layer_id}/query", params={
+            "where": "1=1", "outFields": "*", "geometry": BBOX, "geometryType": "esriGeometryEnvelope",
+            "inSR": 4326, "outSR": 4326, "spatialRel": "esriSpatialRelIntersects", "returnGeometry": "true",
+            "resultOffset": offset, "resultRecordCount": 1000, "f": "json"}, timeout=60).json()
+        if "error" in d:
+            raise RuntimeError(d["error"])
+        batch = d.get("features", [])
+        feats += batch
+        if not d.get("exceededTransferLimit") or not batch:
+            return d.get("geometryType", ""), d.get("fields", []), feats
+        offset += len(batch)
+
+
+# ---------- 1. TenneT layers ----------
+meta = requests.get(TENNET, params={"f": "json"}, timeout=30).json()
+lines, stations = [], []
+for lyr in meta.get("layers", []):
+    gtype, fields, feats = query(lyr["id"])
+    print(f"\n[{lyr['id']}] {lyr['name']}: {len(feats)} features ({gtype})")
+    print("  fields:", [f["name"] for f in fields])
+    for f in feats[:3]:
+        print("  e.g.", {k: v for k, v in f["attributes"].items() if v not in (None, "")})
+    out = [{"type": "Feature", "properties": {**f["attributes"], "_layer": lyr["name"]}, "geometry": esri_geom(f.get("geometry"))}
+           for f in feats]
+    (lines if gtype == "esriGeometryPolyline" else stations).extend(out)
+
+for name, fs in (("tennet-lines", lines), ("tennet-stations", stations)):
+    with open(f"data/real/{name}.geojson", "w", encoding="utf-8") as fh:
+        json.dump({"type": "FeatureCollection", "source": "TenneT (TenneT_Assets_Hoogspanning)", "features": fs}, fh, ensure_ascii=False)
+    print(f"saved data/real/{name}.geojson ({len(fs)})")
+
+# ---------- 2. OSM substations under construction ----------
+q = """[out:json][timeout:60];
+area["name"="Drenthe"]["admin_level"="4"]->.d;
+nwr["construction:power"="substation"](area.d);
+out center tags;"""
+try:
+    r = requests.post("https://overpass-api.de/api/interpreter", data={"data": q}, timeout=90).json()
+    fs = []
+    for e in r.get("elements", []):
+        lat = e.get("lat") or e.get("center", {}).get("lat")
+        lon = e.get("lon") or e.get("center", {}).get("lon")
+        if lat:
+            fs.append({"type": "Feature", "properties": e.get("tags", {}), "geometry": {"type": "Point", "coordinates": [lon, lat]}})
+    with open("data/real/osm-construction.geojson", "w", encoding="utf-8") as fh:
+        json.dump({"type": "FeatureCollection", "source": "© OpenStreetMap contributors (ODbL)", "features": fs}, fh, ensure_ascii=False)
+    print(f"\nOSM substations under construction: {len(fs)}")
+    for f in fs:
+        print("  ", f["properties"].get("name"), f["properties"].get("voltage"), f["geometry"]["coordinates"])
+except Exception as e:  # Overpass is sometimes busy; not essential
+    print("\nOverpass failed (try again later):", e)

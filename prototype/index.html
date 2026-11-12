@@ -1,0 +1,475 @@
+<!doctype html>
+<!--
+  CLICKABLE CONCEPT PROTOTYPE: the whole flow on one page, for the team to see how the parts connect.
+  Customer order → shared register → planner simulator (decide X → who proceeds / is delayed) → customer status update → map.
+  Self-contained: reads ../data/app/* but does NOT use or change the main app's js/ files. Open via http://localhost:8000/prototype/
+  All MW, orders and events are illustrative (Demo · fictieve gegevens). Upgrade years: Enexis IP2026 / TenneT IP2026.
+  Dutch strings in T.nl were written by Claude: ask the Dutch teammate to proofread (marked NL?).
+-->
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype · Regionale maatregelkaart</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root { --navy:#003584; --blue:#3C8CFA; --green:#33A92F; --grey:#F0ECEA; --orange:#FF6428; --yellow:#FAC850; --red:#C8102E; }
+* { box-sizing: border-box; }
+html, body { margin:0; height:100%; font-family: Arial, Helvetica, sans-serif; color:#1a1a1a; background: var(--grey); }
+body { display:flex; flex-direction:column; }
+header { background: var(--navy); color:#fff; padding:8px 14px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+header h1 { font-size:18px; margin:0; }
+.badge { font-size:11px; background: var(--yellow); color: var(--navy); padding:2px 8px; border-radius:10px; }
+.roles { display:flex; gap:4px; margin-left:12px; }
+.roles button, .seg button { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.6); padding:5px 10px; border-radius:6px; cursor:pointer; font:inherit; font-size:13px; }
+.roles button.active, .seg button.active { background:#fff; color: var(--navy); }
+.right { margin-left:auto; display:flex; gap:12px; align-items:center; font-size:13px; flex-wrap:wrap; }
+.seg { display:inline-flex; gap:2px; }
+.flow { display:flex; gap:6px; align-items:center; padding:6px 14px; background:#fff; border-bottom:1px solid #ddd; font-size:12px; flex-wrap:wrap; }
+.flow span.step { padding:3px 8px; border-radius:10px; background: var(--grey); color:#555; }
+.flow span.step.on { background: var(--blue); color:#fff; }
+.flow span.arr { color:#999; }
+main { flex:1; display:flex; min-height:0; }
+#map { flex:1; }
+aside { width:440px; background:#fff; border-left:1px solid #ddd; overflow-y:auto; padding:14px 16px; }
+h2 { font-size:17px; color: var(--navy); margin:0 0 10px; }
+h3 { font-size:14px; color: var(--navy); margin:16px 0 6px; }
+label { display:block; font-size:12px; color:#555; margin:8px 0 3px; }
+input[type=text], input[type=number], select { width:100%; padding:6px 8px; border:1px solid #ccc; border-radius:6px; font:inherit; font-size:13px; }
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+button.primary { background: var(--blue); color:#fff; border:0; border-radius:6px; padding:8px 14px; cursor:pointer; font:inherit; }
+button.ghost { background:#fff; color: var(--navy); border:1px solid #bbb; border-radius:6px; padding:6px 10px; cursor:pointer; font:inherit; font-size:13px; }
+.card { border:1px solid #ddd; border-radius:8px; padding:10px 12px; margin:8px 0; }
+.card.hl { border-color: var(--blue); box-shadow:0 0 0 2px rgba(60,140,250,.2); }
+.big { font-size:24px; font-weight:bold; color: var(--navy); }
+.muted { color:#666; font-size:12px; }
+.pill { display:inline-block; font-size:11px; padding:1px 7px; border-radius:9px; margin-left:4px; }
+.p-proceeds { background:#e3f4e1; color:#1d6b1a; } .p-delayed { background:#fff0e6; color:#b33f00; } .p-not_possible { background:#fbe3e6; color: var(--red); }
+.prio { background:#e8eefb; color: var(--navy); }
+.tl { list-style:none; padding:0; margin:6px 0; border-left:2px solid #ccd; }
+.tl li { padding:4px 0 8px 12px; position:relative; font-size:13px; }
+.tl li::before { content:""; position:absolute; left:-6px; top:8px; width:10px; height:10px; border-radius:50%; background:#ccd; }
+.tl li.done::before { background: var(--green); } .tl li.now::before { background: var(--blue); } .tl li.warn::before { background: var(--orange); }
+.tl .d { color:#888; font-size:11px; }
+.up { display:grid; grid-template-columns: 1fr 110px 44px; gap:6px; align-items:center; font-size:12px; margin:4px 0; }
+.sum { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.sum div { background: var(--grey); border-radius:6px; padding:6px 8px; font-size:12px; }
+.sum b { display:block; font-size:18px; color: var(--navy); }
+.chg { font-size:12px; padding:4px 0; border-bottom:1px solid #eee; }
+.legend { background:#fff; padding:6px 10px; border-radius:6px; font-size:12px; line-height:1.6; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+.legend i { display:inline-block; width:12px; height:12px; border-radius:2px; margin-right:5px; vertical-align:-2px; }
+.yr-label { background:#fff; border:1px solid var(--blue); color: var(--navy); font-size:11px; padding:0 4px; box-shadow:none; }
+.yr-label.risk { border-color: var(--red); color: var(--red); }
+.yr-label::before { display:none; }
+.pick { cursor: crosshair !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="h-title"></h1><span class="badge" id="h-badge"></span>
+  <div class="roles" id="roles">
+    <button data-view="order"></button><button data-view="status"></button><button data-view="planner"></button>
+  </div>
+  <div class="right">
+    <span id="yr-l"></span> <b id="yr-v"></b> <input type="range" id="yr" min="2026" max="2035" step="1" value="2026">
+    <div class="seg" id="dir"><button data-dir="afname"></button><button data-dir="teruglevering"></button></div>
+    <div class="seg" id="lang"><button data-lang="nl">NL</button><button data-lang="en">EN</button></div>
+  </div>
+</header>
+<div class="flow" id="flow"></div>
+<main><div id="map"></div><aside id="panel"></aside></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ===================== text =====================
+const T = {
+  nl: { // NL? = proofread
+    title: "Regionale maatregelkaart · prototype", badge: "Demo · fictieve gegevens",
+    v_order: "Klant: aanvraag", v_status: "Klant: mijn status", v_planner: "Planner: simulator",
+    f_order: "1 Klant dient aanvraag in", f_reg: "2 Gedeeld register (één formaat)", f_plan: "3 Planner test besluit", f_status: "4 Klant ziet wat en waarom", f_map: "Kaart toont alles",
+    year: "Jaar", afname: "Afname", teruglevering: "Teruglevering",
+    o_title: "Nieuwe aansluitaanvraag", o_name: "Projectnaam", o_type: "Type", o_mw: "Vermogen (MW)", o_year: "Nodig vanaf",
+    o_maturity: "Fase", o_loc: "Locatie", o_pick: "Kies op kaart", o_picking: "Klik op de kaart…", o_noloc: "Nog geen locatie",
+    o_preview: "Eerste inschatting", o_submit: "Aanvraag indienen", o_prio: "Prioriteit (ACM-kader)",
+    t_battery: "Batterij", t_defence: "Defensie / nationale veiligheid", t_hospital: "Ziekenhuis / zorg", t_school: "School", t_housing: "Woningbouw",
+    t_solar: "Zonnepark", t_business_park: "Bedrijventerrein", t_industry: "Industrie", t_charging: "Laadplein", t_hydrogen: "Elektrolyser", t_heat: "Warmtepompen",
+    m_idea: "Idee", m_planned: "Gepland", m_permit: "Vergunning", m_contracted: "Gecontracteerd",
+    pr1: "1 · Congestieverlichter", pr2: "2 · Veiligheid", pr3: "3 · Maatschappelijk", pr4: "4 · Overig",
+    s_title: "Mijn projecten", s_none: "Nog geen eigen projecten. Dien een aanvraag in.", s_est: "Verwachte aansluiting", s_wait: "Wacht op",
+    s_next: "Volgende stap", s_sooner: "Sneller aansluiten (effect berekend)", s_hist: "Wat er gebeurde en waarom", s_area: "Netgebied",
+    proceeds: "Op schema", delayed: "Vertraagd", not_possible: "Niet vóór 2035",
+    ms_nonfirm: "Flexibel transportrecht (kan worden afgeschakeld)", ms_timeblock: "Blokstroom (buiten 16–21u)", ms_cablepool: "Cable pooling met batterij", ms_battery: "Eigen batterij 50%",
+    next_idea: "Dien een formele aansluitaanvraag in", next_planned: "Lever netimpactgegevens aan vóór 1 feb 2027 (pMIEK)", next_permit: "Onderteken de transportovereenkomst", next_contracted: "Wacht op aansluiting; u krijgt bericht bij wijzigingen",
+    p_title: "Planner: wat gebeurt er als…", p_upg: "Netuitbreidingen (jaar in gebruik)", p_add: "Batterij 20 MW toevoegen in gekozen gebied", p_choose: "Kies eerst een gebied op de kaart",
+    p_cancel: "Aanvraag intrekken", p_result: "Effect op aanvragen", p_base: "nu", p_scen: "na besluit",
+    p_apply: "Besluit bevestigen → klanten informeren", p_reset: "Reset", p_nochange: "Geen wijzigingen voor klanten.",
+    p_orders: "Wachtrij in gekozen gebied", p_area: "Gekozen gebied",
+    ev_submitted: "Aanvraag ingediend", ev_queued: "In wachtrij geplaatst", ev_estimate: "Eerste inschatting", ev_changed: "Inschatting gewijzigd",
+    because_upg: "omdat {u} verschuift naar {y}", because_bat: "omdat een batterij in uw gebied ruimte vrijmaakt", because_cancel: "omdat een andere aanvraag is ingetrokken", because_prio: "door aanvragen met hogere prioriteit",
+    sources: "Jaartallen netuitbreidingen: Enexis IP2026 / TenneT IP2026 · MW en aanvragen: demo",
+    room: "Ruimte", limited: "Beperkt", bottleneck: "Knelpunt", none: "geen",
+  },
+  en: {
+    title: "Regional measures map · prototype", badge: "Demo · illustrative data",
+    v_order: "Customer: order", v_status: "Customer: my status", v_planner: "Planner: simulator",
+    f_order: "1 Customer submits order", f_reg: "2 Shared register (one format)", f_plan: "3 Planner tests decision", f_status: "4 Customer sees what and why", f_map: "Map shows it all",
+    year: "Year", afname: "Offtake", teruglevering: "Feed-in",
+    o_title: "New connection request", o_name: "Project name", o_type: "Type", o_mw: "Power (MW)", o_year: "Needed from",
+    o_maturity: "Phase", o_loc: "Location", o_pick: "Pick on map", o_picking: "Click on the map…", o_noloc: "No location yet",
+    o_preview: "First estimate", o_submit: "Submit request", o_prio: "Priority (ACM framework)",
+    t_battery: "Battery", t_defence: "Defence / national security", t_hospital: "Hospital / care", t_school: "School", t_housing: "Housing",
+    t_solar: "Solar park", t_business_park: "Business park", t_industry: "Industry", t_charging: "Charging hub", t_hydrogen: "Electrolyser", t_heat: "Heat pumps",
+    m_idea: "Idea", m_planned: "Planned", m_permit: "Permit", m_contracted: "Contracted",
+    pr1: "1 · Congestion reliever", pr2: "2 · Safety", pr3: "3 · Public / basic needs", pr4: "4 · Other",
+    s_title: "My projects", s_none: "No projects yet. Submit a request.", s_est: "Expected connection", s_wait: "Waiting for",
+    s_next: "Next step", s_sooner: "Connect sooner (effect calculated)", s_hist: "What happened and why", s_area: "Grid area",
+    proceeds: "On schedule", delayed: "Delayed", not_possible: "Not before 2035",
+    ms_nonfirm: "Flexible transport right (can be curtailed)", ms_timeblock: "Time-block contract (outside 16–21h)", ms_cablepool: "Cable pooling with a battery", ms_battery: "Own battery, 50%",
+    next_idea: "Submit a formal connection request", next_planned: "Provide grid impact data before 1 Feb 2027 (pMIEK)", next_permit: "Sign the transport agreement", next_contracted: "Wait for connection; you'll be notified of changes",
+    p_title: "Planner: what happens if…", p_upg: "Grid upgrades (year in service)", p_add: "Add a 20 MW battery in the selected area", p_choose: "Select an area on the map first",
+    p_cancel: "Withdraw request", p_result: "Effect on requests", p_base: "now", p_scen: "after decision",
+    p_apply: "Confirm decision → notify customers", p_reset: "Reset", p_nochange: "No changes for customers.",
+    p_orders: "Queue in selected area", p_area: "Selected area",
+    ev_submitted: "Request submitted", ev_queued: "Placed in queue", ev_estimate: "First estimate", ev_changed: "Estimate changed",
+    because_upg: "because {u} moved to {y}", because_bat: "because a battery in your area frees up room", because_cancel: "because another request was withdrawn", because_prio: "because of higher-priority requests",
+    sources: "Upgrade years: Enexis IP2026 / TenneT IP2026 · MW and requests: demo",
+    room: "Room", limited: "Limited", bottleneck: "Bottleneck", none: "none",
+  },
+};
+let LANG = "nl";
+const t = (k, v = {}) => (T[LANG][k] ?? T.nl[k] ?? k).replace(/\{(\w+)\}/g, (_, x) => v[x]);
+
+// ===================== state =====================
+const TODAY = "12-11-2026", START = 2026, END = 2035;
+const PRIO = { battery: 1, defence: 2, hospital: 3, school: 3, housing: 3 }; // others 4 (ACM: relievers, safety, basic needs)
+const prio = (cat) => PRIO[cat] ?? 4;
+const PROFILE = { battery: "flexible", defence: "flat", hospital: "flat", school: "evening_peak", housing: "evening_peak", solar: "daytime_solar",
+  business_park: "flat", industry: "flat", charging: "night", hydrogen: "flexible", heat: "evening_peak" };
+const S = {
+  view: "order", year: 2026, dir: "afname", areaId: null, orderId: null,
+  applied: { upgradeYears: {}, cancelled: [], batteries: [] },  // decisions in force
+  draft: { upgradeYears: {}, cancelled: [], batteries: [] },    // planner's what-if
+  form: { name: "", category: "solar", mw: 10, year: 2028, maturity: "planned", lat: null, lon: null },
+  picking: false,
+};
+let AREAS, UPG, ORDERS = [], EVENTS = {}; // EVENTS[orderId] = [{date, key, text, kind}]
+
+// ===================== geometry =====================
+function inRing(x, y, ring) {
+  let ins = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) ins = !ins;
+  }
+  return ins;
+}
+function areaAt(lat, lon) {
+  for (const f of AREAS.features) {
+    const g = f.geometry, polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+    if (polys.some((p) => inRing(lon, lat, p[0]))) return f.properties.id;
+  }
+  return null;
+}
+const area = (id) => AREAS.features.find((f) => f.properties.id === id)?.properties;
+
+// ===================== engine: queue simulation =====================
+const key = (d) => (d === "teruglevering" ? "feed_in" : "offtake");
+const oDir = (o) => (o.mw_feed_in > o.mw_offtake ? "teruglevering" : "afname");
+const oMW = (o) => Math.max(o.mw_offtake, o.mw_feed_in);
+const upYear = (u, dec) => dec.upgradeYears[u.id] ?? u.year_feasible;
+const base = (a, d, y) => a[`base_${key(d)}_mw`] * Math.pow(1 + a[`growth_${key(d)}`], y - START);
+const capacity = (aid, d, y, dec) => area(aid)[`cap_${key(d)}_mw`] +
+  UPG.filter((u) => u.area_id === aid && upYear(u, dec) <= y).reduce((s, u) => s + u[`mw_added_${key(d)}`], 0);
+const MEASURE = { timeblock: 0.15, cablepool: 0.6, battery: 0.5, nonfirm: 0 }; // share of peak MW left after the measure (illustrative)
+
+// Give scarce capacity to orders in ACM priority order (class, then request date). Batteries relieve both directions.
+function simulate(dec, opts = {}) {
+  const used = {}, relief = {}, res = {};
+  const slot = (o, aid, d) => (o[`${aid}|${d}`] ??= Array(END - START + 1).fill(0));
+  const orders = ORDERS.concat(dec.batteries, opts.extra ? [opts.extra] : [])
+    .filter((o) => !dec.cancelled.includes(o.id))
+    .sort((a, b) => a.priority - b.priority || a.request_seq - b.request_seq);
+  for (const o of orders) {
+    const y0 = Math.max(o.year_needed, START);
+    if (o.category === "battery") {
+      for (const d of ["afname", "teruglevering"]) { const r = slot(relief, o.area_id, d); for (let y = y0; y <= END; y++) r[y - START] += o.mw_flex || oMW(o); }
+      res[o.id] = { year: y0, status: "proceeds", wait: null };
+      continue;
+    }
+    const d = oDir(o), m = (opts.measure && opts.measure.id === o.id) ? MEASURE[opts.measure.type] : 1, mw = oMW(o) * m;
+    const u = slot(used, o.area_id, d), r = slot(relief, o.area_id, d);
+    let got = null;
+    for (let y = y0; y <= END; y++) {
+      const head = capacity(o.area_id, d, y, dec) + r[y - START] - base(area(o.area_id), d, y) - u[y - START];
+      if (head >= mw) { got = y; break; }
+    }
+    if (got === null) { res[o.id] = { year: null, status: "not_possible", wait: null }; continue; }
+    for (let y = got; y <= END; y++) u[y - START] += mw;
+    const wait = got > y0 ? UPG.find((x) => x.area_id === o.area_id && upYear(x, dec) === got) || null : null;
+    res[o.id] = { year: got, status: got === y0 ? "proceeds" : "delayed", wait };
+  }
+  return { res, used, relief };
+}
+function areaStatus(sim, aid, d, y, dec) {
+  const a = area(aid), i = y - START;
+  const load = base(a, d, y) + (sim.used[`${aid}|${d}`]?.[i] || 0) - (sim.relief[`${aid}|${d}`]?.[i] || 0);
+  const cap = capacity(aid, d, y, dec), r = load / cap;
+  return { load, cap, ratio: r, status: r < 0.8 ? "room" : r <= 1 ? "limited" : "bottleneck" };
+}
+function estRange(r) {
+  if (!r || r.year === null) return t("not_possible");
+  if (!r.wait) return `${r.year}`;
+  const latest = Math.max(r.wait.year_latest ?? r.year, r.year + (r.wait.year_latest - r.wait.year_feasible || 0));
+  return latest > r.year ? `${r.year}–${latest}` : `${r.year}`;
+}
+
+// ===================== data =====================
+Promise.all(["../data/app/areas.geojson", "../data/app/upgrades.json", "../data/app/plans.json"].map((p) => fetch(p).then((r) => r.json())))
+  .then(([a, u, p]) => {
+    AREAS = a; UPG = u;
+    // register = existing demo plans + a few demo orders that show the priority classes
+    const extra = [
+      { id: "d-bat", title_nl: "Netbatterij", title_en: "Grid battery", category: "battery", mw_offtake: 0, mw_feed_in: 0, mw_flex: 15, lat: 52.70, lon: 6.84, year_needed: 2027, maturity: "permit" },
+      { id: "d-def", title_nl: "Defensielocatie uitbreiding", title_en: "Defence site expansion", category: "defence", mw_offtake: 6, mw_feed_in: 0, lat: 52.99, lon: 6.55, year_needed: 2028, maturity: "planned" },
+      { id: "d-hos", title_nl: "Ziekenhuis uitbreiding", title_en: "Hospital expansion", category: "hospital", mw_offtake: 4, mw_feed_in: 0, lat: 52.78, lon: 6.89, year_needed: 2028, maturity: "permit" },
+      { id: "d-sch", title_nl: "Nieuwe school", title_en: "New school", category: "school", mw_offtake: 1, mw_feed_in: 0, lat: 52.72, lon: 6.86, year_needed: 2027, maturity: "planned" },
+    ];
+    ORDERS = p.concat(extra).map((o, i) => ({ mw_flex: 0, ...o, area_id: areaAt(o.lat, o.lon) || o.area_id, priority: prio(o.category), request_seq: i, mine: o.id === "p-001" }));
+    for (const o of ORDERS.filter((x) => x.mine)) seedEvents(o);
+    S.orderId = "p-001";
+    initMap(); render();
+  })
+  .catch((e) => document.body.insertAdjacentHTML("afterbegin", `<pre style="color:#c00;padding:8px">${e} — open via http://localhost:8000/prototype/</pre>`));
+
+function seedEvents(o) {
+  const r = simulate(S.applied).res[o.id];
+  EVENTS[o.id] = [
+    { date: TODAY, kind: "done", text: () => t("ev_submitted") },
+    { date: TODAY, kind: "done", text: () => `${t("ev_queued")} · ${t("pr" + o.priority)} · ${area(o.area_id)?.name}` },
+    { date: TODAY, kind: "now", text: () => `${t("ev_estimate")}: ${estRange(r)}${r.wait ? ` · ${t("s_wait")} ${r.wait[`title_${LANG}`]}` : ""}` },
+  ];
+}
+
+// ===================== map =====================
+const COL = { room: "#33A92F", limited: "#FAC850", bottleneck: "#FF6428", proceeds: "#33A92F", delayed: "#FF6428", not_possible: "#C8102E" };
+let map, areaL, upgL, ordL;
+function initMap() {
+  map = L.map("map").setView([52.85, 6.6], 9);
+  L.tileLayer("https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/grijs/EPSG:3857/{z}/{x}/{y}.png",
+    { attribution: "Kaart: PDOK · CBS/PDOK · Stations: © OpenStreetMap contributors · Jaartallen: Enexis/TenneT IP2026", maxZoom: 14 }).addTo(map);
+  areaL = L.geoJSON(AREAS, { style: { weight: 1, color: "#003584", fillOpacity: 0.45 },
+    onEachFeature: (f, l) => l.on("click", (e) => onMapClick(e.latlng, f.properties.id)) }).addTo(map);
+  map.fitBounds(areaL.getBounds(), { padding: [10, 10] });
+  upgL = L.layerGroup().addTo(map); ordL = L.layerGroup().addTo(map);
+  map.on("click", (e) => onMapClick(e.latlng, areaAt(e.latlng.lat, e.latlng.lng)));
+  const lg = L.control({ position: "bottomleft" });
+  lg.onAdd = () => L.DomUtil.create("div", "legend");
+  lg.addTo(map);
+}
+function onMapClick(ll, aid) {
+  if (S.picking && S.view === "order") {
+    S.form.lat = +ll.lat.toFixed(4); S.form.lon = +ll.lng.toFixed(4); S.picking = false;
+    map.getContainer().classList.remove("pick");
+  }
+  if (aid) S.areaId = aid;
+  render();
+}
+function drawMap() {
+  const dec = S.view === "planner" ? S.draft : S.applied, sim = simulate(dec);
+  areaL.eachLayer((l) => {
+    const id = l.feature.properties.id, st = areaStatus(sim, id, S.dir, S.year, dec);
+    l.setStyle({ fillColor: COL[st.status], weight: id === S.areaId ? 3 : 1 });
+    l.bindTooltip(`${l.feature.properties.name}: ${Math.round(st.load)} / ${Math.round(st.cap)} MW · ${t(st.status)}`);
+  });
+  upgL.clearLayers();
+  for (const u of UPG) {
+    if (u.lat == null) continue;
+    const y = upYear(u, dec), live = y <= S.year, risk = !live && (y - u.year_desired >= 2 || u.phase === "study");
+    L.circleMarker([u.lat, u.lon], { radius: 10, weight: 3, color: live ? "#33A92F" : risk ? "#C8102E" : "#3C8CFA", dashArray: live ? null : "4 3", fillColor: "#fff", fillOpacity: live ? 0 : 0.6 })
+      .bindTooltip(live ? u[`title_${LANG}`] : `${y}`, live ? {} : { permanent: true, direction: "right", offset: [10, 0], className: `yr-label${risk ? " risk" : ""}` })
+      .addTo(upgL);
+  }
+  ordL.clearLayers();
+  const all = ORDERS.concat(dec.batteries);
+  for (const o of all) {
+    const r = sim.res[o.id], st = dec.cancelled.includes(o.id) ? null : r?.status;
+    L.circleMarker([o.lat, o.lon], { radius: o.mine ? 9 : 6, weight: o.id === S.orderId ? 4 : 2, color: "#003584",
+      fillColor: st ? COL[st] : "#bbb", fillOpacity: 1, dashArray: o.category === "battery" ? "3 2" : null })
+      .bindTooltip(`${o[`title_${LANG}`]} · ${oMW(o) || o.mw_flex} MW · ${st ? `${t(st)} ${estRange(r)}` : "—"}`)
+      .on("click", (e) => { L.DomEvent.stopPropagation(e); S.orderId = o.id; S.areaId = o.area_id; if (o.mine && S.view === "order") S.view = "status"; render(); })
+      .addTo(ordL);
+  }
+  if (S.form.lat && S.view === "order") L.circleMarker([S.form.lat, S.form.lon], { radius: 9, color: "#3C8CFA", weight: 3, fillColor: "#fff", fillOpacity: 1, dashArray: "3 3" }).addTo(ordL);
+  document.querySelector(".legend").innerHTML =
+    ["room", "limited", "bottleneck"].map((k) => `<i style="background:${COL[k]}"></i>${t(k)}`).join(" &nbsp; ") + "<br>" +
+    ["proceeds", "delayed", "not_possible"].map((k) => `<i style="background:${COL[k]};border-radius:50%"></i>${t(k)}`).join(" &nbsp; ");
+}
+
+// ===================== panels =====================
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const TYPES = ["solar", "battery", "defence", "hospital", "school", "housing", "business_park", "industry", "charging", "hydrogen", "heat"];
+
+function draftOrder() {
+  const f = S.form;
+  if (f.lat == null) return null;
+  const isFeed = f.category === "solar";
+  return { id: "draft", title_nl: f.name || "Nieuw project", title_en: f.name || "New project", category: f.category,
+    mw_offtake: isFeed || f.category === "battery" ? 0 : +f.mw, mw_feed_in: isFeed ? +f.mw : 0, mw_flex: f.category === "battery" ? +f.mw : 0,
+    lat: f.lat, lon: f.lon, area_id: areaAt(f.lat, f.lon), year_needed: +f.year, maturity: f.maturity,
+    priority: prio(f.category), request_seq: ORDERS.length, mine: true };
+}
+
+function panelOrder() {
+  const f = S.form, d = draftOrder();
+  let preview = "";
+  if (d && d.area_id) {
+    const r = simulate(S.applied, { extra: d }).res.draft;
+    preview = `<div class="card hl"><div class="muted">${t("o_preview")} · ${t("s_area")} ${area(d.area_id).name}</div>
+      <div class="big">${estRange(r)}</div><span class="pill p-${r.status}">${t(r.status)}</span>
+      ${r.wait ? `<div style="font-size:13px;margin-top:4px">${t("s_wait")}: ${r.wait[`title_${LANG}`]}</div>` : ""}</div>`;
+  }
+  return `<h2>${t("o_title")}</h2>
+    <label>${t("o_name")}</label><input type="text" id="f-name" value="${esc(f.name)}" placeholder="${LANG === "nl" ? "Zonnepark De Velden" : "Solar park De Velden"}">
+    <div class="row2"><div><label>${t("o_type")}</label><select id="f-cat">${TYPES.map((x) => `<option value="${x}" ${x === f.category ? "selected" : ""}>${t("t_" + x)}</option>`).join("")}</select></div>
+    <div><label>${t("o_mw")}</label><input type="number" id="f-mw" min="0.1" step="0.5" value="${f.mw}"></div></div>
+    <div class="row2"><div><label>${t("o_year")}</label><input type="number" id="f-year" min="2026" max="2035" value="${f.year}"></div>
+    <div><label>${t("o_maturity")}</label><select id="f-mat">${["idea", "planned", "permit", "contracted"].map((x) => `<option value="${x}" ${x === f.maturity ? "selected" : ""}>${t("m_" + x)}</option>`).join("")}</select></div></div>
+    <label>${t("o_prio")}</label><div><span class="pill prio">${t("pr" + prio(f.category))}</span></div>
+    <label>${t("o_loc")}</label><div style="display:flex;gap:8px;align-items:center"><button class="ghost" id="f-pick">${S.picking ? t("o_picking") : t("o_pick")}</button>
+      <span class="muted">${f.lat ? `${f.lat}, ${f.lon}` : t("o_noloc")}</span></div>
+    ${preview}
+    <p><button class="primary" id="f-submit" ${d && d.area_id ? "" : "disabled"}>${t("o_submit")}</button></p>
+    <p class="muted">${t("sources")}</p>`;
+}
+
+function panelStatus() {
+  const mine = ORDERS.filter((o) => o.mine);
+  if (!mine.length) return `<h2>${t("s_title")}</h2><p class="muted">${t("s_none")}</p>`;
+  if (!mine.some((o) => o.id === S.orderId)) S.orderId = mine[0].id;
+  const o = ORDERS.find((x) => x.id === S.orderId), sim = simulate(S.applied), r = sim.res[o.id];
+  const list = mine.map((m) => { const rr = sim.res[m.id];
+    return `<div class="card ${m.id === o.id ? "hl" : ""}" data-oid="${m.id}" style="cursor:pointer"><b>${esc(m[`title_${LANG}`])}</b>
+      <span class="pill p-${rr.status}">${t(rr.status)}</span><div class="muted">${area(m.area_id)?.name} · ${oMW(m) || m.mw_flex} MW · ${estRange(rr)}</div></div>`; }).join("");
+  const opts = (oDir(o) === "afname" ? ["timeblock", "battery", "nonfirm"] : ["cablepool", "battery", "nonfirm"]).map((type) => {
+    const rr = simulate(S.applied, { measure: { id: o.id, type } }).res[o.id];
+    return `<div class="chg">${t("ms_" + type)}: <b>${estRange(rr)}</b> <span class="pill p-${rr.status}">${t(rr.status)}</span></div>`; }).join("");
+  const tl = (EVENTS[o.id] || []).map((e) => `<li class="${e.kind}"><span class="d">${e.date}</span><br>${e.text()}</li>`).join("");
+  return `<h2>${t("s_title")}</h2>${list}
+    <div class="card"><div class="muted">${t("s_est")}</div><div class="big">${estRange(r)}</div>
+      <span class="pill p-${r.status}">${t(r.status)}</span><span class="pill prio">${t("pr" + o.priority)}</span>
+      ${r.wait ? `<div style="font-size:13px;margin-top:6px">${t("s_wait")}: <b>${r.wait[`title_${LANG}`]}</b><br><span class="muted">${r.wait[`risk_${LANG}`] || ""} ${r.wait[`space_${LANG}`] ? "· " + r.wait[`space_${LANG}`] : ""}</span></div>` : ""}
+    </div>
+    <h3>${t("s_next")}</h3><div style="font-size:13px">${t("next_" + o.maturity)}</div>
+    <h3>${t("s_sooner")}</h3>${opts}
+    <h3>${t("s_hist")}</h3><ul class="tl">${tl}</ul>
+    <p class="muted">${t("sources")}</p>`;
+}
+
+function diff() {
+  const a = simulate(S.applied).res, b = simulate(S.draft).res, out = [];
+  for (const id of Object.keys(b).concat(Object.keys(a))) {
+    if (out.some((x) => x.id === id)) continue;
+    const ra = a[id], rb = b[id];
+    if (!ra || !rb || ra.year !== rb.year) out.push({ id, ra, rb });
+  }
+  const count = (res) => ["proceeds", "delayed", "not_possible"].map((k) => Object.values(res).filter((r) => r.status === k).length);
+  return { out, ca: count(a), cb: count(b) };
+}
+function reasonFor(o) {
+  const moved = UPG.find((u) => u.area_id === o.area_id && upYear(u, S.draft) !== upYear(u, S.applied));
+  if (moved) return t("because_upg", { u: moved[`title_${LANG}`], y: upYear(moved, S.draft) });
+  if (S.draft.batteries.some((b) => b.area_id === o.area_id) && S.draft.batteries.length > S.applied.batteries.length) return t("because_bat");
+  if (S.draft.cancelled.length > S.applied.cancelled.length) return t("because_cancel");
+  return t("because_prio");
+}
+
+function panelPlanner() {
+  const { out, ca, cb } = diff(), all = ORDERS.concat(S.draft.batteries);
+  const ups = UPG.map((u) => `<div class="up"><span>${u[`title_${LANG}`]}</span>
+    <input type="range" min="${u.year_desired}" max="2036" value="${upYear(u, S.draft)}" data-up="${u.id}"><b>${upYear(u, S.draft)}</b></div>`).join("");
+  const sum = ["proceeds", "delayed", "not_possible"].map((k, i) => `<div>${t(k)}<b>${ca[i]} → ${cb[i]}</b></div>`).join("");
+  const chg = out.length ? out.map(({ id, ra, rb }) => { const o = all.find((x) => x.id === id);
+    return `<div class="chg"><b>${esc(o?.[`title_${LANG}`] ?? id)}</b> (${t("pr" + (o?.priority ?? 4)).split(" · ")[0]}): ${estRange(ra)} → <b>${rb ? estRange(rb) : "—"}</b>
+      ${rb ? `<span class="pill p-${rb.status}">${t(rb.status)}</span>` : ""}<br><span class="muted">${o ? reasonFor(o) : ""}</span></div>`; }).join("")
+    : `<p class="muted">${t("p_nochange")}</p>`;
+  let q = "";
+  if (S.areaId) {
+    const sim = simulate(S.draft);
+    q = `<h3>${t("p_orders")}: ${area(S.areaId).name}</h3>` + all.filter((o) => o.area_id === S.areaId)
+      .sort((a, b) => a.priority - b.priority || a.request_seq - b.request_seq).map((o) => {
+        const c = S.draft.cancelled.includes(o.id), r = sim.res[o.id];
+        return `<div class="chg"><span class="pill prio">${o.priority}</span> ${esc(o[`title_${LANG}`])} · ${oMW(o) || o.mw_flex} MW
+          ${c ? "<s>" : ""}<b>${r ? estRange(r) : ""}</b>${c ? "</s>" : ""} <label style="display:inline;margin-left:6px"><input type="checkbox" data-cancel="${o.id}" ${c ? "checked" : ""}> ${t("p_cancel")}</label></div>`; }).join("");
+  }
+  return `<h2>${t("p_title")}</h2>
+    <h3>${t("p_upg")}</h3>${ups}
+    <p><button class="ghost" id="p-bat">${S.areaId ? t("p_add") + ` (${area(S.areaId).name})` : t("p_choose")}</button></p>
+    ${q}
+    <h3>${t("p_result")} (${t("p_base")} → ${t("p_scen")})</h3><div class="sum">${sum}</div>${chg}
+    <p><button class="primary" id="p-apply" ${out.length ? "" : "disabled"}>${t("p_apply")}</button> <button class="ghost" id="p-reset">${t("p_reset")}</button></p>
+    <p class="muted">${t("sources")}</p>`;
+}
+
+// ===================== render + events =====================
+function render() {
+  document.getElementById("h-title").textContent = t("title");
+  document.getElementById("h-badge").textContent = t("badge");
+  document.getElementById("yr-l").textContent = t("year");
+  document.getElementById("yr-v").textContent = S.year;
+  document.getElementById("yr").value = S.year;
+  document.querySelectorAll("#roles button").forEach((b) => { b.textContent = t("v_" + b.dataset.view); b.classList.toggle("active", b.dataset.view === S.view); });
+  document.querySelectorAll("#dir button").forEach((b) => { b.textContent = t(b.dataset.dir); b.classList.toggle("active", b.dataset.dir === S.dir); });
+  document.querySelectorAll("#lang button").forEach((b) => b.classList.toggle("active", b.dataset.lang === LANG));
+  const on = { order: ["f_order", "f_reg"], planner: ["f_reg", "f_plan"], status: ["f_status"] }[S.view];
+  document.getElementById("flow").innerHTML = ["f_order", "f_reg", "f_plan", "f_status"].map((k) => `<span class="step ${on.includes(k) ? "on" : ""}">${t(k)}</span>`).join('<span class="arr">→</span>') +
+    `<span class="arr">·</span><span class="step on">${t("f_map")}</span>`;
+  const p = document.getElementById("panel");
+  p.innerHTML = S.view === "order" ? panelOrder() : S.view === "status" ? panelStatus() : panelPlanner();
+  bindPanel();
+  drawMap();
+}
+function bindPanel() {
+  const $ = (id) => document.getElementById(id);
+  if (S.view === "order") {
+    const upd = () => { Object.assign(S.form, { name: $("f-name").value, category: $("f-cat").value, mw: +$("f-mw").value, year: +$("f-year").value, maturity: $("f-mat").value }); };
+    ["f-cat", "f-mw", "f-year", "f-mat"].forEach((id) => $(id).addEventListener("change", () => { upd(); render(); }));
+    $("f-name").addEventListener("input", upd);
+    $("f-pick").onclick = () => { upd(); S.picking = true; map.getContainer().classList.add("pick"); render(); };
+    $("f-submit").onclick = () => {
+      upd(); const d = draftOrder(); if (!d || !d.area_id) return;
+      const o = { ...d, id: "u-" + Date.now() }; ORDERS.push(o); seedEvents(o);
+      S.orderId = o.id; S.areaId = o.area_id; S.form = { ...S.form, name: "", lat: null, lon: null }; S.view = "status"; render();
+    };
+  }
+  if (S.view === "status") document.querySelectorAll("[data-oid]").forEach((c) => c.onclick = () => { S.orderId = c.dataset.oid; S.areaId = ORDERS.find((o) => o.id === S.orderId).area_id; render(); });
+  if (S.view === "planner") {
+    document.querySelectorAll("[data-up]").forEach((i) => i.addEventListener("change", () => { S.draft.upgradeYears = { ...S.draft.upgradeYears, [i.dataset.up]: +i.value }; render(); }));
+    document.querySelectorAll("[data-cancel]").forEach((i) => i.addEventListener("change", () => {
+      S.draft.cancelled = i.checked ? [...S.draft.cancelled, i.dataset.cancel] : S.draft.cancelled.filter((x) => x !== i.dataset.cancel); render(); }));
+    $("p-bat").onclick = () => {
+      if (!S.areaId) return;
+      const c = map.getCenter(), ll = areaL.getLayers().find((l) => l.feature.properties.id === S.areaId).getBounds().getCenter();
+      S.draft.batteries = [...S.draft.batteries, { id: "b-" + Date.now(), title_nl: "Netbatterij 20 MW (besluit)", title_en: "Grid battery 20 MW (decision)", category: "battery",
+        mw_offtake: 0, mw_feed_in: 0, mw_flex: 20, lat: ll.lat, lon: ll.lng, area_id: S.areaId, year_needed: Math.max(S.year, 2027), maturity: "planned", priority: 1, request_seq: 9999 }];
+      render();
+    };
+    $("p-apply").onclick = () => {
+      const { out } = diff();
+      for (const { id, ra, rb } of out) {
+        const o = ORDERS.find((x) => x.id === id); if (!o || !o.mine) continue;
+        const why = reasonFor(o), from = estRange(ra), to = rb ? estRange(rb) : "—";
+        (EVENTS[id] ??= []).forEach((e) => { if (e.kind === "now") e.kind = "done"; });
+        EVENTS[id].push({ date: TODAY, kind: rb && rb.year && ra && ra.year && rb.year < ra.year ? "now" : "warn", text: () => `${t("ev_changed")}: ${from} → ${to} · ${why}` });
+      }
+      S.applied = JSON.parse(JSON.stringify(S.draft)); render();
+    };
+    $("p-reset").onclick = () => { S.draft = JSON.parse(JSON.stringify(S.applied)); render(); };
+  }
+}
+document.querySelectorAll("#roles button").forEach((b) => b.onclick = () => { S.view = b.dataset.view; S.picking = false; render(); });
+document.querySelectorAll("#dir button").forEach((b) => b.onclick = () => { S.dir = b.dataset.dir; render(); });
+document.querySelectorAll("#lang button").forEach((b) => b.onclick = () => { LANG = b.dataset.lang; render(); });
+document.getElementById("yr").addEventListener("input", (e) => { S.year = +e.target.value; render(); });
+</script>
+</body>
+</html>

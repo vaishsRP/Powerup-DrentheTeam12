@@ -81,6 +81,24 @@ U = [
     ("klazienaveen", "klazienaveen-zwet", "Klazienaveen Zwet: trafo-uitbreiding", "Klazienaveen Zwet: transformer upgrade", 2026, 2031, False, 3, "transformer"),
 ]
 ADDED = {"new_station": 80, "extension": 40, "transformer": 25}  # ILLUSTRATIVE MW per upgrade type
+# Infrastructure details per upgrade (for the map): phase (Enexis IP2026: Opdracht = commissioned, Studie = study),
+# latest likely year (delivery risk), location, and space/permit status. Sources: RESEARCH.md §7, §9, §10.
+# 🔎 = reported in news/annexes, not yet checked word for word. approx = pin placed by hand, not an exact site.
+station_xy = {slug(s["name"]): (s["lat"], s["lon"]) for s in stations}
+INFRA = {
+    "veenoord-boerdijk": dict(phase="commissioned", latest=2033, approx=True, lat=52.700, lon=6.870,
+        space_nl="In aanbouw (mastbouw sept 2026) 🔎", space_en="Under construction (masts, Sept 2026) 🔎",
+        risk_nl="Vertraagd door tekort aan aannemers (TenneT IP2026)", risk_en="Delayed by contractor shortage (TenneT IP2026)"),
+    "wijster": dict(phase="commissioned", latest=2030, approx=True, lat=52.812, lon=6.525,
+        space_nl="Bestemmingsplan: uitspraak Raad van State mei 2026 🔎", space_en="Zoning plan: Council of State ruling May 2026 🔎",
+        risk_nl="Ruimtelijke procedure", risk_en="Spatial procedure"),
+}
+DEFAULT_SPACE = {"commissioned": ("Bestaand stationsterrein", "Existing station site"),
+                 "study": ("Locatie nog in studie", "Location still in study")}
+PHASE = {"veenoord-boerdijk": "commissioned", "wijster": "commissioned", "hoogeveen": "commissioned", "meppel": "commissioned",
+         "gasselte": "commissioned", "emmen-bargermeer": "study", "emmen-weerdinge": "study", "assen-marsdijk": "study",
+         "klazienaveen": "study"}
+
 upgrades = []
 for uid, area, tnl, ten, desired, feasible, verified, lead, kind in U:
     if area not in area_ids:
@@ -90,6 +108,16 @@ for uid, area, tnl, ten, desired, feasible, verified, lead, kind in U:
         "year_desired": desired, "year_feasible": feasible, "lead_years": lead, "kind": kind,
         "mw_added_offtake": ADDED[kind], "mw_added_feed_in": ADDED[kind],   # ILLUSTRATIVE
         "source_document": "Enexis Investeringsplan 2026", "years_verified": verified,
+    })
+    x = INFRA.get(uid, {})
+    phase = x.get("phase", PHASE[uid])
+    lat, lon = (x["lat"], x["lon"]) if "lat" in x else station_xy.get(area, (None, None))
+    upgrades[-1].update({
+        "phase": phase,                                            # "commissioned" | "study"
+        "year_latest": x.get("latest", feasible + (1 if phase == "commissioned" else 2)),  # delivery risk range
+        "lat": lat, "lon": lon, "location_approx": x.get("approx", False),
+        "space_nl": x.get("space_nl", DEFAULT_SPACE[phase][0]), "space_en": x.get("space_en", DEFAULT_SPACE[phase][1]),
+        "risk_nl": x.get("risk_nl", ""), "risk_en": x.get("risk_en", ""),
     })
 json.dump(upgrades, open("data/app/upgrades.json", "w"), ensure_ascii=False, indent=1)
 

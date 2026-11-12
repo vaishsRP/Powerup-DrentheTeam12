@@ -12,7 +12,16 @@
   "mw_added_offtake": 80,
   "mw_added_feed_in": 80,
   "source_document": "Enexis Investeringsplan 2026",
-  "years_verified": true
+  "years_verified": true,
+  "phase": "commissioned",
+  "year_latest": 2033,
+  "lat": 52.7,
+  "lon": 6.87,
+  "location_approx": true,
+  "space_nl": "In aanbouw (mastbouw sept 2026) 🔎",
+  "space_en": "Under construction (masts, Sept 2026) 🔎",
+  "risk_nl": "Vertraagd door tekort aan aannemers (TenneT IP2026)",
+  "risk_en": "Delayed by contractor shortage (TenneT IP2026)"
  },
  {
   "id": "wijster",
@@ -27,7 +36,16 @@
   "mw_added_offtake": 80,
   "mw_added_feed_in": 80,
   "source_document": "Enexis Investeringsplan 2026",
-  "years_verified": true
+  "years_verified": true,
+  "phase": "commissioned",
+  "year_latest": 2030,
+  "lat": 52.812,
+  "lon": 6.525,
+  "location_approx": true,
+  "space_nl": "Bestemmingsplan: uitspraak Raad van State mei 2026 🔎",
+  "space_en": "Zoning plan: Council of State ruling May 2026 🔎",
+  "risk_nl": "Ruimtelijke procedure",
+  "risk_en": "Spatial procedure"
  },
  {
   "id": "hoogeveen",
@@ -42,7 +60,16 @@
   "mw_added_offtake": 25,
   "mw_added_feed_in": 25,
   "source_document": "Enexis Investeringsplan 2026",
-  "years_verified": false
+  "years_verified": false,
+  "phase": "commissioned",
+  "year_latest": 2028,
+  "lat": 52.73734,
+  "lon": 6.47585,
+  "location_approx": false,
+  "space_nl": "Bestaand stationsterrein",
+  "space_en": "Existing station site",
+  "risk_nl": "",
+  "risk_en": ""
  },
  {
   "id": "meppel",
@@ -57,7 +84,16 @@
   "mw_added_offtake": 40,
   "mw_added_feed_in": 40,
   "source_document": "Enexis Investeringsplan 2026",
-  "years_verified": false
+  "years_verified": false,
+  "phase": "commissioned",
+  "year_latest": 2028,
+  "lat": 52.68362,
+  "lon": 6.18962,
+  "location_approx": false,
+  "space_nl": "Bestaand stationsterrein",
+  "space_en": "Existing station site",
+  "risk_nl": "",
+  "risk_en": ""
  },
  {
   "id": "gasselte",
@@ -72,7 +108,16 @@
   "mw_added_offtake": 40,
   "mw_added_feed_in": 40,
   "source_document": "Enexis Investeringsplan 2026",
-  "years_verified": false
+  "years_verified": false,
+  "phase": "commissioned",
+  "year_latest": 2030,
+  "lat": 52.98584,
+  "lon": 6.82292,
+  "location_approx": false,
+  "space_nl": "Bestaand stationsterrein",
+  "space_en": "Existing station site",
+  "risk_nl": "",
+  "risk_en": ""
  },
  {
   "id": "emmen-bargermeer",
@@ -87,7 +132,16 @@
   "mw_added_offtake": 25,
   "mw_added_feed_in": 25,
   "source_document": "Enexis Investeringsplan 2026",
-  "years_verified": false
+  "years_verified": false,
+  "phase": "study",
+  "year_latest": 2031,
+  "lat": 52.762,
+  "lon": 6.92629,
+  "location_approx": false,
+  "space_nl": "Locatie nog in studie",
+  "space_en": "Location still in study",
+  "risk_nl": "",
+  "risk_en": ""
  },
  {
   "id": "emmen-weerdinge",
@@ -102,7 +156,16 @@
   "mw_added_offtake": 40,
   "mw_added_feed_in": 40,
   "source_document": "Enexis Investeringsplan 2026",
-  "years_verified": false
+  "years_verified": false,
+  "phase": "study",
+  "year_latest": 2032,
+  "lat": 52.8075,
+  "lon": 6.90936,
+  "location_approx": false,
+  "space_nl": "Locatie nog in studie",
+  "space_en": "Location still in study",
+  "risk_nl": "",
+  "risk_en": ""
  },
  {
   "id": "assen-marsdijk",
@@ -117,7 +180,16 @@
   "mw_added_offtake": 40,
   "mw_added_feed_in": 40,
   "source_document": "Enexis Investeringsplan 2026",
-  "years_verified": false
+  "years_verified": false,
+  "phase": "study",
+  "year_latest": 2033,
+  "lat": 53.01365,
+  "lon": 6.58203,
+  "location_approx": false,
+  "space_nl": "Locatie nog in studie",
+  "space_en": "Location still in study",
+  "risk_nl": "",
+  "risk_en": ""
  },
  {
   "id": "klazienaveen",
@@ -132,6 +204,15 @@
   "mw_added_offtake": 25,
   "mw_added_feed_in": 25,
   "source_document": "Enexis Investeringsplan 2026",
-  "years_verified": false
+  "years_verified": false,
+  "phase": "study",
+  "year_latest": 2033,
+  "lat": 52.73767,
+  "lon": 7.01093,
+  "location_approx": false,
+  "space_nl": "Locatie nog in studie",
+  "space_en": "Location still in study",
+  "risk_nl": "",
+  "risk_en": ""
  }
 ]
