@@ -259,7 +259,8 @@ const NewPage = {
       year_needed: +f.year, maturity: f.maturity, municipality: "", priority: { battery: 1, defence: 2, hospital: 3, school: 3, housing: 3 }[f.category] ?? 4, request_seq: 9999 };
   },
   mount(root) {
-    const map = MAPKIT.create(root.querySelector("#map")), g = L.layerGroup().addTo(map), mk = L.layerGroup().addTo(map);
+    // zoom and pan (inside Drenthe) to find the exact spot; the mouse wheel keeps scrolling the form
+    const map = MAPKIT.create(root.querySelector("#map"), { interactive: true, scroll: false }), g = L.layerGroup().addTo(map), mk = L.layerGroup().addTo(map);
     MAPKIT.drawRealAreas(g, this.form.category === "solar" ? "teruglevering" : "afname", { subtle: true });
     g.eachLayer((l) => l.eachLayer?.((x) => { x.unbindPopup(); x.on("click", (e) => pick(e.latlng)); }));
     const drawPin = () => { mk.clearLayers(); if (this.form.lat != null) MAPKIT.pin(mk, this.form.lat, this.form.lon); };

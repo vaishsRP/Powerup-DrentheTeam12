@@ -73,7 +73,7 @@ const TEXT = {
     own_pmiek: "Provincie en netbeheerder (pMIEK)", act_propose: "Netuitbreiding voorstellen voor het pMIEK", act_study: "Locatie en ontwerp vastleggen, investering opnemen in het investeringsplan", // NL?
     act_build: "Bouw afronden en vertraging op tijd melden", act_plan: "Vergunning en planning bevestigen", act_measures: "Tot dan: maatregelen (batterij, flexibel contract, cable pooling)", no_upg: "Nog geen netuitbreiding gepland in dit gebied", // NL?
     // new request review + simulator decisions (Thu evening)
-    review_title: "Wat gebeurt er na het indienen?", review_p: "Een expert van de netbeheerder beoordeelt uw aanvraag. Daarna krijgt u een eerste inschatting van de aansluitdatum, met de reden.", // NL?
+    review_title: "Wat gebeurt er na het indienen?", review_p: "Een expert van de netbeheerder beoordeelt uw aanvraag. Daarna krijgt u een eerste inschatting van de aansluitdatum.", // NL?
     review_today: "Vandaag op de capaciteitskaart", in_review: "In beoordeling", // NL?
     review_wait: "Een expert van de netbeheerder controleert uw aanvraag. Zodra de inschatting bevestigd is, ziet u hier de verwachte aansluitdatum en de reden.", // NL?
     ev_review: "De netbeheerder beoordeelt uw aanvraag. Hierna krijgt u een eerste inschatting.", ev_confirmed: "Eerste inschatting van de netbeheerder", // NL?
@@ -188,7 +188,7 @@ const TEXT = {
     blk_location: "Location / land not settled", blk_permit: "Permit / spatial procedure", blk_contractors: "Shortage of contractors", blk_coord: "Coordination Enexis and TenneT", blk_none_known: "No blocker known in the sources",
     own_pmiek: "Province and grid operator (pMIEK)", act_propose: "Propose a grid upgrade for the pMIEK", act_study: "Fix location and design, put the investment in the investment plan",
     act_build: "Finish construction and report delays early", act_plan: "Confirm permit and schedule", act_measures: "Until then: measures (battery, flexible contract, cable pooling)", no_upg: "No grid upgrade planned in this area yet",
-    review_title: "What happens after you submit?", review_p: "An expert at the grid operator reviews your request. You then get a first estimate of the connection date, with the reason.",
+    review_title: "What happens after you submit?", review_p: "An expert at the grid operator reviews your request. You then get a first estimate of the connection date.",
     review_today: "Today on the capacity map", in_review: "Under review",
     review_wait: "An expert at the grid operator is checking your request. Once the estimate is confirmed, you'll see the expected connection date and the reason here.",
     ev_review: "The grid operator is reviewing your request. You'll get a first estimate next.", ev_confirmed: "First estimate from the grid operator",
