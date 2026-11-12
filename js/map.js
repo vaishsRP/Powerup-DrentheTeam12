@@ -7,8 +7,8 @@
 
   document.addEventListener("dataready", () => {
     map = L.map("map", { zoomControl: true }).setView([52.85, 6.6], 9);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      attribution: "© OpenStreetMap contributors © CARTO · CBS/PDOK",
+    L.tileLayer("https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/grijs/EPSG:3857/{z}/{x}/{y}.png", {
+      attribution: 'Kaart: <a href="https://www.pdok.nl">PDOK</a> (BRT Achtergrondkaart) · Grenzen: CBS/PDOK · Stations: © OpenStreetMap contributors',
       maxZoom: 14,
     }).addTo(map);
 
