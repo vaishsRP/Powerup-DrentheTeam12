@@ -170,7 +170,7 @@ const MAPKIT = (() => {
       ${u[`space_${L_()}`] ? row("", u[`space_${L_()}`]) : ""}${u[`risk_${L_()}`] ? row("", u[`risk_${L_()}`]) : ""}</table>`;
   }
   function drawUpgrades(g, dec, year, opts = {}) {
-    for (const u of STORE.data.upgrades) {
+    for (const u of ENGINE.upgrades(dec)) {
       if (u.lat == null || (opts.only && !opts.only.includes(u.id))) continue;
       const st = ENGINE.upStatus(u, dec, year), risk = st !== "operational" && ENGINE.atRisk(u, dec);
       const color = st === "operational" ? COL.room : st === "under_construction" ? COL.build : risk ? COL.shortage : COL.blue;

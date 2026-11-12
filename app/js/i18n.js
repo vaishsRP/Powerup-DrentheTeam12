@@ -59,6 +59,15 @@ const TEXT = {
     // planner
     ov_title: "Overzicht Drenthe", view_today: "Vandaag", view_today_hint: "capaciteitskaart", view_proj: "Projectie", view_proj_hint: "register",
     no_data: "Geen gegevens op de capaciteitskaart", // NL?
+    // new request review + simulator decisions (Thu evening)
+    review_title: "Wat gebeurt er na het indienen?", review_p: "Een expert van de netbeheerder beoordeelt uw aanvraag. Daarna krijgt u een eerste inschatting van de aansluitdatum, met de reden.", // NL?
+    review_today: "Vandaag op de capaciteitskaart", in_review: "In beoordeling", // NL?
+    review_wait: "Een expert van de netbeheerder controleert uw aanvraag. Zodra de inschatting bevestigd is, ziet u hier de verwachte aansluitdatum en de reden.", // NL?
+    ev_review: "De netbeheerder beoordeelt uw aanvraag. Hierna krijgt u een eerste inschatting.", ev_confirmed: "Eerste inschatting van de netbeheerder", // NL?
+    rv_title: "Nieuwe aanvragen te beoordelen", rv_lead: "Controleer het voorstel van het model en stuur de inschatting naar de klant.", rv_model: "Voorstel", rv_send: "Bevestigen en versturen", rv_sent: "Inschatting verstuurd naar de klant", // NL?
+    sim_upg_lead: "Kies een gebied om de netuitbreidingen daar te zien, of kies er hieronder een.", sim_upg_pick: "Netuitbreiding toevoegen…", sim_upg_ready: "Klaar in", sim_upg_off: "Niet uitvoeren", sim_upg_hide: "Uit de lijst halen", // NL?
+    sim_new: "Nieuwe netuitbreiding", sim_new_kind: "Soort", sim_new_mw: "Extra capaciteit (MW)", sim_new_btn: "Toevoegen in {area}", sim_new_tag: "nieuw", // NL?
+    k_transformer: "Trafo-uitbreiding", k_new_station: "Nieuw station", k_line: "Verzwaring verbinding", because_upg_off: "omdat {u} niet doorgaat", // NL?
     view_proj_legend: "verwachte status per gebied", // NL?
     layers: "Lagen", l_areas: "Gebieden", l_infra: "Netinfrastructuur", l_stations: "Onderstations", l_upgrades: "Netuitbreidingen", l_cables: "Hoogspanningsnet (TenneT)", l_projects: "Projecten",
     k_bottlenecks: "gebieden met knelpunt in", k_delayed: "netuitbreidingen te laat", k_queue: "MW in de wachtrij (echt)", k_first: "eerste besluit nodig",
@@ -72,7 +81,7 @@ const TEXT = {
     real_here: "Echte capaciteitskaart in dit gebied", test_sim: "Test een besluit",
     // simulator
     sim_title: "Wat gebeurt er als…", sim_lead: "Verander een besluit. De wachtrij wordt opnieuw verdeeld.",
-    sim_upg: "Jaar in bedrijf van netuitbreidingen", sim_bat: "Batterij plaatsen", sim_bat_btn: "Plaats {mw} MW batterij", sim_bat_mw: "Vermogen batterij (MW)", sim_bat_placed: "Geplaatst in dit besluit", sim_bat_remove: "Verwijder", sim_choose: "Kies een gebied", // NL?
+    sim_upg: "Netuitbreidingen in dit besluit", sim_bat: "Batterij plaatsen", sim_bat_btn: "Plaats {mw} MW batterij", sim_bat_mw: "Vermogen batterij (MW)", sim_bat_placed: "Geplaatst in dit besluit", sim_bat_remove: "Verwijder", sim_choose: "Kies een gebied", // NL?
     sim_withdraw: "Aanvraag intrekken", effect: "Effect op aanvragen", now: "nu", after: "na besluit",
     no_change: "Nog geen verschil. Verander links een besluit.", confirm: "Besluit vastleggen en klanten informeren", reset: "Terugzetten",
     informed: "Besluit vastgelegd. {n} klanten zien de wijziging in hun tijdlijn.",
@@ -149,6 +158,14 @@ const TEXT = {
     first_estimate: "First estimate",
     ov_title: "Drenthe overview", view_today: "Today", view_today_hint: "capacity map", view_proj: "Projection", view_proj_hint: "register",
     no_data: "No data on the capacity map",
+    review_title: "What happens after you submit?", review_p: "An expert at the grid operator reviews your request. You then get a first estimate of the connection date, with the reason.",
+    review_today: "Today on the capacity map", in_review: "Under review",
+    review_wait: "An expert at the grid operator is checking your request. Once the estimate is confirmed, you'll see the expected connection date and the reason here.",
+    ev_review: "The grid operator is reviewing your request. You'll get a first estimate next.", ev_confirmed: "First estimate from the grid operator",
+    rv_title: "New requests to review", rv_lead: "Check the model's proposal and send the estimate to the customer.", rv_model: "Proposal", rv_send: "Confirm and send", rv_sent: "Estimate sent to the customer",
+    sim_upg_lead: "Choose an area to see its grid upgrades, or pick one below.", sim_upg_pick: "Add a grid upgrade…", sim_upg_ready: "Ready in", sim_upg_off: "Don't build", sim_upg_hide: "Remove from the list",
+    sim_new: "New grid upgrade", sim_new_kind: "Type", sim_new_mw: "Extra capacity (MW)", sim_new_btn: "Add in {area}", sim_new_tag: "new",
+    k_transformer: "Transformer upgrade", k_new_station: "New station", k_line: "Line upgrade", because_upg_off: "because {u} will not go ahead",
     view_proj_legend: "expected status per area",
     layers: "Layers", l_areas: "Areas", l_infra: "Grid infrastructure", l_stations: "Substations", l_upgrades: "Grid upgrades", l_cables: "HV grid (TenneT)", l_projects: "Projects",
     k_bottlenecks: "areas with a bottleneck in", k_delayed: "grid upgrades late", k_queue: "MW in the queue (real)", k_first: "first decision needed",
@@ -161,7 +178,7 @@ const TEXT = {
     queue_title: "Queue in this area", queue_lead: "In order of priority (ACM framework), then by date.",
     real_here: "Real capacity map in this area", test_sim: "Test a decision",
     sim_title: "What happens if…", sim_lead: "Change a decision. The queue is shared out again.",
-    sim_upg: "Year in service of grid upgrades", sim_bat: "Place a battery", sim_bat_btn: "Place a {mw} MW battery", sim_bat_mw: "Battery power (MW)", sim_bat_placed: "Placed in this decision", sim_bat_remove: "Remove", sim_choose: "Choose an area",
+    sim_upg: "Grid upgrades in this decision", sim_bat: "Place a battery", sim_bat_btn: "Place a {mw} MW battery", sim_bat_mw: "Battery power (MW)", sim_bat_placed: "Placed in this decision", sim_bat_remove: "Remove", sim_choose: "Choose an area",
     sim_withdraw: "Withdraw request", effect: "Effect on requests", now: "now", after: "after decision",
     no_change: "No difference yet. Change a decision on the left.", confirm: "Record decision and notify customers", reset: "Reset",
     informed: "Decision recorded. {n} customers see the change in their timeline.",

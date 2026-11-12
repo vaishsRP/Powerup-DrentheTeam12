@@ -6,8 +6,8 @@ const STORE = {
   state: {
     lang: "nl", year: 2029, dir: "afname", view: "today",          // planner map: "today" (capaciteitskaart) | "proj" (register)
     layers: { areas: true, stations: true, upgrades: true, cables: true, projects: true },
-    applied: { upgradeYears: {}, cancelled: [], batteries: [] },     // decisions in force
-    draft: { upgradeYears: {}, cancelled: [], batteries: [] },       // simulator what-if
+    applied: { upgradeYears: {}, cancelled: [], batteries: [], newUpgrades: [], removedUpgrades: [] }, // decisions in force
+    draft: { upgradeYears: {}, cancelled: [], batteries: [], newUpgrades: [], removedUpgrades: [] },   // simulator what-if
     userOrders: [], events: {}, simArea: null,
   },
   listeners: [],
@@ -52,6 +52,7 @@ async function loadData() {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
     if (saved) Object.assign(STORE.state, { lang: saved.lang || "nl", applied: saved.applied || STORE.state.applied, userOrders: saved.userOrders || [], events: saved.events || {} });
   } catch (_) { /* ignore */ }
+  STORE.state.applied.newUpgrades ??= []; STORE.state.applied.removedUpgrades ??= [];
   STORE.state.draft = JSON.parse(JSON.stringify(STORE.state.applied));
   ENGINE.init();
   for (const o of ENGINE.orders().filter((x) => x.mine)) if (!STORE.state.events[o.id]) seedEvents(o, true);
@@ -64,15 +65,17 @@ function seedEvents(o, demoHistory = false) {
   STORE.state.events[o.id] = [
     { date: demoHistory ? "03-03-2026" : TODAY, kind: "done", key: "ev_submitted" },
     { date: demoHistory ? "17-03-2026" : TODAY, kind: "done", key: "ev_queued", vars: { prio: o.priority, area } },
-    { date: demoHistory ? "17-03-2026" : TODAY, kind: "now", key: "ev_estimate", vars: { est: ENGINE.estRange(r), wait: r?.wait?.id || "" } },
+    o.review === "pending"
+      ? { date: TODAY, kind: "now", key: "ev_review" }
+      : { date: demoHistory ? "17-03-2026" : TODAY, kind: "now", key: "ev_estimate", vars: { est: ENGINE.estRange(r), wait: r?.wait?.id || "" } },
   ];
 }
 function eventText(e) {
   const v = e.vars || {};
   if (e.key === "ev_queued") return `${t("ev_queued")}: ${t("pr" + v.prio)}, ${v.area}`;
-  if (e.key === "ev_estimate") {
-    const u = v.wait && STORE.data.upgrades.find((x) => x.id === v.wait);
-    return `${t("ev_estimate")}: ${v.est}${u ? `. ${t("waiting_for")} ${u[`title_${STORE.state.lang}`]}` : ""}`;
+  if (e.key === "ev_estimate" || e.key === "ev_confirmed") {
+    const u = v.wait && ENGINE.findUpgrade(v.wait);
+    return `${t(e.key)}: ${v.est}${u ? `. ${t("waiting_for")} ${u[`title_${STORE.state.lang}`]}` : ""}`;
   }
   if (e.key === "ev_changed") return `${t("ev_changed")}: ${v.from} → ${v.to}, ${reasonText(v.reason)}`;
   if (e.key === "ev_option") return `${t("option_requested")} ${t("o_" + v.option).toLowerCase()}`;
@@ -80,7 +83,9 @@ function eventText(e) {
 }
 function reasonText(r) {
   if (!r) return "";
-  if (r.type === "upg") { const u = STORE.data.upgrades.find((x) => x.id === r.id); return t("because_upg", { u: u ? u[`title_${STORE.state.lang}`] : "", y: r.year }); }
+  const u = r.id && ENGINE.findUpgrade(r.id), name = u ? u[`title_${STORE.state.lang}`] : "";
+  if (r.type === "upg") return t("because_upg", { u: name, y: r.year });
+  if (r.type === "upg_off") return t("because_upg_off", { u: name });
   return t({ bat: "because_bat", cancel: "because_cancel", prio: "because_prio" }[r.type]);
 }
 function toast(msg) {

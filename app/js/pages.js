@@ -7,6 +7,10 @@ const CODE_CLASS = ["s-room", "s-limited", "s-investigate", "s-shortage"];
 const TYPE_ICON = { solar: "sun", battery: "battery-charging", defence: "shield", hospital: "hospital", school: "school", housing: "building-2",
   business_park: "factory", industry: "factory", charging: "car-front", hydrogen: "zap", heat: "flame" };
 const pill = (cls, text) => `<span class="pill ${cls}">${text}</span>`;
+// a new request shows no date until an expert of the grid operator has confirmed the estimate
+const pending = (o) => o?.review === "pending";
+const estText = (o, r) => (pending(o) ? t("in_review") : ENGINE.estRange(r));
+const estPill = (o, r) => (pending(o) ? pill("s-neutral", t("in_review")) : pill(STATUS_CLASS[r?.status] || "s-neutral", t(r?.status || "proceeds")));
 const stationFor = (areaId) => STORE.data.stations.find((s) => s.name.replace(/^\d+ kV /, "").toLowerCase().replace(/ /g, "-") === areaId);
 function meter(ratio) { // the dot meter: 10 dots, filled share = use of capacity, red dots = over capacity
   const n = Math.round(Math.min(ratio, 1.5) * 10);
@@ -91,12 +95,12 @@ const ProjectsPage = {
     const rows = mine.map((o) => {
       const r = sim.res[o.id], ev = STORE.state.events[o.id] || [], last = ev[ev.length - 1];
       return `<a class="row-item" href="#/klant/project/${o.id}">
-        <span class="bar ${STATUS_CLASS[r?.status] || "s-neutral"}"></span>
+        <span class="bar ${pending(o) ? "s-neutral" : STATUS_CLASS[r?.status] || "s-neutral"}"></span>
         <div><h3>${icon(TYPE_ICON[o.category] || "zap")} ${esc(title(o))}</h3>
           <div class="row-meta"><span>${icon("map-pin", 14)} ${esc(ENGINE.area(o.area_id)?.name || "")}</span><span>${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()}</span>
           ${last ? `<span>${icon("clock", 14)} ${last.date}</span>` : ""}</div>
           <p class="small" style="margin-top:6px">${t("next_step")}: ${t("next_" + o.maturity)}</p></div>
-        <div class="row-end"><div class="small muted">${t("expected")}</div><div class="est">${ENGINE.estRange(r)}</div>${pill(STATUS_CLASS[r?.status] || "s-neutral", t(r?.status || "proceeds"))}</div>
+        <div class="row-end"><div class="small muted">${t("expected")}</div><div class="est ${pending(o) ? "est-pending" : ""}">${estText(o, r)}</div>${estPill(o, r)}</div>
       </a>`;
     }).join("");
     return `<div class="page">
@@ -134,7 +138,7 @@ const ProjectPage = {
         <button class="btn btn-quiet" style="padding:4px 8px;margin-top:4px;font-size:12px" data-opt="${type}">${t("request_option")}</button></div></div>`;
     }).join("");
     const ev = (STORE.state.events[o.id] || []).map((e) => `<li class="${e.kind}"><span class="dot"></span><time>${e.date}</time><span class="t">${eventText(e)}</span></li>`).join("");
-    const future = r?.year ? `<li class="todo"><span class="dot"></span><time>${ENGINE.estRange(r)}</time><span class="t">${t("ev_connected")}</span></li>` : "";
+    const future = r?.year && !pending(o) ? `<li class="todo"><span class="dot"></span><time>${ENGINE.estRange(r)}</time><span class="t">${t("ev_connected")}</span></li>` : "";
     return `<div class="page">
       <a class="back" href="#/klant">${icon("arrow-left", 16)} ${t("back_projects")}</a>
       <div class="split">
@@ -142,9 +146,10 @@ const ProjectPage = {
           <h1>${icon(TYPE_ICON[o.category] || "zap", 26)} ${esc(title(o))}</h1>
           <div class="row-meta" style="margin-top:8px"><span>${ENGINE.oMW(o)} MW ${t(dir).toLowerCase()}</span><span>${icon("map-pin", 14)} ${esc(o.municipality || ENGINE.area(o.area_id)?.name || "")}</span><span>${t("m_" + o.maturity)}</span></div>
           <div class="panel" style="margin-top:20px">
-            <div class="estimate"><div class="big">${ENGINE.estRange(r)}</div>
-              <div><div class="muted">${t("expected")}</div>${pill(STATUS_CLASS[r?.status] || "s-neutral", t(r?.status || "proceeds"))}</div></div>
-            ${w ? `<p class="why" style="margin-top:14px">${t("waiting_for")}: <b>${title(w)}</b>, ${t(wStatus).toLowerCase()}. ${esc(w[`risk_${lang()}`] || "")}</p>` : ""}
+            <div class="estimate"><div class="big ${pending(o) ? "est-pending" : ""}">${estText(o, r)}</div>
+              <div><div class="muted">${t("expected")}</div>${estPill(o, r)}</div></div>
+            ${pending(o) ? `<p class="why" style="margin-top:14px">${t("review_wait")}</p>` : ""}
+            ${w && !pending(o) ? `<p class="why" style="margin-top:14px">${t("waiting_for")}: <b>${title(w)}</b>, ${t(wStatus).toLowerCase()}. ${esc(w[`risk_${lang()}`] || "")}</p>` : ""}
             <div class="facts">
               <div><b>${esc(ENGINE.area(o.area_id)?.name || "–")}</b><span>${t("area")}</span></div>
               <div><b>${t("pr" + o.priority)}</b><span>${t("prio_note")}</span></div>
@@ -153,9 +158,9 @@ const ProjectPage = {
             </div>
           </div>
           <div class="panel panel-grey"><h2>${icon("list-checks")} ${t("next_step")}</h2><p>${t("next_" + o.maturity)}</p></div>
-          <h2 class="section-title">${icon("zap")} ${t("sooner")}</h2>
+          ${pending(o) ? "" : `<h2 class="section-title">${icon("zap")} ${t("sooner")}</h2>
           <p class="small muted">${t("sooner_lead")}</p>
-          <div class="panel" style="margin-top:10px;padding-top:6px;padding-bottom:6px">${opts}</div>
+          <div class="panel" style="margin-top:10px;padding-top:6px;padding-bottom:6px">${opts}</div>`}
           <h2 class="section-title">${icon("calendar-clock")} ${t("history")}</h2>
           <ul class="timeline">${ev}${future}</ul>
         </div>
@@ -180,13 +185,13 @@ const ProjectPage = {
       MAPKIT.label(g, st.lat, st.lon, `<b>${st.name.replace(/^\d+ kV /, "")}</b>, ${st.voltages_kv.join("/")} kV<br>${t("operational")}<br><span class="q">${t("tbc")}</span>`, "left", [-12, 0]);
       MAPKIT.drawLines(g, 2026, { near: [st.lat, st.lon], stationIds: [o.area_id] });
     }
-    const ups = ENGINE.upgradesIn(o.area_id).filter((u) => u.lat != null);
+    const ups = ENGINE.upgradesIn(o.area_id, dec).filter((u) => u.lat != null);
     MAPKIT.drawUpgrades(g, dec, 2026, { only: ups.map((u) => u.id), labels: false });
     for (const u of ups) {
       pts.push([u.lat, u.lon]);
       const y = ENGINE.upYear(u, dec), latest = y + Math.max(0, (u.year_latest ?? y) - u.year_feasible);
       MAPKIT.label(g, u.lat, u.lon, `<b>${title(u)}</b><br>${t(ENGINE.upStatus(u, dec, 2026))}, ${latest > y ? `${y}–${latest}` : y}<br>` +
-        (r?.wait?.id === u.id ? `<span class="k">${t("affects")}</span>` : `<span class="q">${t("tbc")}</span>`), "right", [14, 0]);
+        (r?.wait?.id === u.id && !pending(o) ? `<span class="k">${t("affects")}</span>` : `<span class="q">${t("tbc")}</span>`), "right", [14, 0]);
     }
     MAPKIT.pin(g, o.lat, o.lon, `<b>${esc(title(o))}</b><br>${ENGINE.oMW(o)} MW`);
     // the map can't be panned, so leave room for the labels on both sides
@@ -204,13 +209,11 @@ const NewPage = {
   formHtml() {
     const f = this.form, types = ["solar", "battery", "housing", "school", "hospital", "defence", "business_park", "industry", "charging", "hydrogen", "heat"];
     const areaId = f.lat != null ? ENGINE.areaAt(f.lat, f.lon) : null;
-    let est = "";
-    if (areaId) {
-      const draft = this.draft(areaId), r = ENGINE.simulate(STORE.state.applied, { extra: draft }).res.draft;
-      est = `<div class="panel" style="margin-top:8px"><div class="estimate"><div class="big">${ENGINE.estRange(r)}</div>
-        <div><div class="muted">${t("first_estimate")}</div>${pill(STATUS_CLASS[r.status], t(r.status))}</div></div>
-        ${r.wait ? `<p class="why" style="margin-top:12px">${t("waiting_for")}: <b>${title(r.wait)}</b></p>` : ""}</div>`;
-    }
+    // no estimate here: an expert of the grid operator checks the request first and sends the estimate back
+    const ra = areaId ? ENGINE.realAreaAt(f.lat, f.lon)?.properties : null, dir = f.category === "solar" ? "teruglevering" : "afname";
+    const code = ra ? ENGINE.ckCode(ra, dir) : null;
+    const est = `<div class="panel" style="margin-top:8px"><h3 style="margin:0 0 6px">${icon("user-check", 18)} ${t("review_title")}</h3><p>${t("review_p")}</p>
+      ${ra ? `<p class="small" style="margin-top:10px">${t("review_today")} (${esc(ra.name)}): ${pill(CODE_CLASS[code], t("cap" + code))}</p>` : ""}</div>`;
     return `<div class="step-h"><span class="n">1</span><h2>${t("s1")}</h2></div>
       <div class="field"><label for="f-name">${t("f_name")}</label><input id="f-name" value="${esc(f.name)}" placeholder="${t("f_name_ph")}"></div>
       <div class="field"><label>${t("f_type")}</label><div class="types">${types.map((x) => `<button type="button" data-cat="${x}" class="${x === f.category ? "on" : ""}">${icon(TYPE_ICON[x], 20)}<span>${t("t_" + x)}</span><small>${t("pr" + ({ battery: 1, defence: 2, hospital: 3, school: 3, housing: 3 }[x] || 4))}</small></button>`).join("")}</div></div>
@@ -244,7 +247,7 @@ const NewPage = {
       el.querySelectorAll("[data-cat]").forEach((b) => (b.onclick = () => { read(); this.form.category = b.dataset.cat; renderForm(); }));
       el.querySelector("#f-submit").onclick = () => {
         read(); const areaId = ENGINE.areaAt(this.form.lat, this.form.lon); if (!areaId) return;
-        const o = ENGINE.addOrder({ ...this.draft(areaId), id: "u-" + Date.now(), municipality: "" });
+        const o = ENGINE.addOrder({ ...this.draft(areaId), id: "u-" + Date.now(), municipality: "", review: "pending" });
         seedEvents(o); STORE.save();
         this.form = { name: "", category: "solar", mw: 10, year: 2028, maturity: "planned", lat: null, lon: null };
         toast(t("submitted")); location.hash = `#/klant/project/${o.id}`;
@@ -293,6 +296,14 @@ const OverviewPage = {
       root.querySelector("#yr").value = s.year; root.querySelector("#yr-v").textContent = s.year;
       root.querySelector("#side").innerHTML = this.side(sim);
       root.querySelector("#show-all")?.addEventListener("click", () => { STORE.state.showAll = !STORE.state.showAll; draw(); });
+      root.querySelectorAll("[data-confirm]").forEach((b) => (b.onclick = () => {
+        const o = ENGINE.orders().find((x) => x.id === b.dataset.confirm), r = sim.res[o.id];
+        ENGINE.confirmOrder(o.id);
+        const list = (STORE.state.events[o.id] ??= []);
+        list.forEach((e) => { if (e.kind === "now") e.kind = "done"; });
+        list.push({ date: TODAY, kind: "now", key: "ev_confirmed", vars: { est: ENGINE.estRange(r), wait: r?.wait?.id || "" } });
+        STORE.save(); toast(t("rv_sent")); draw();
+      }));
     };
     root.querySelectorAll("#v-view button").forEach((b) => (b.onclick = () => { STORE.state.view = b.dataset.v; draw(); }));
     root.querySelectorAll("#v-dir button").forEach((b) => (b.onclick = () => { STORE.state.dir = b.dataset.d; draw(); }));
@@ -301,10 +312,20 @@ const OverviewPage = {
     draw();
     return () => { clearTimeout(fit); map.remove(); };
   },
+  // new requests waiting for an expert to confirm the model's estimate
+  reviews(sim) {
+    const list = ENGINE.orders().filter(pending);
+    if (!list.length) return "";
+    return `<div class="side-h"><h2>${t("rv_title")} (${list.length})</h2><p class="small muted">${t("rv_lead")}</p></div>
+      ${list.map((o) => { const r = sim.res[o.id];
+        return `<div class="review-row"><div><b>${esc(title(o))}</b><div class="small muted">${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()}, ${esc(ENGINE.area(o.area_id)?.name || "")}</div>
+          <div class="small">${t("rv_model")}: <b>${ENGINE.estRange(r)}</b>${r?.wait ? `, ${t("waiting_for").toLowerCase()} ${esc(title(r.wait))}` : ""}</div></div>
+          <button class="btn btn-primary" data-confirm="${o.id}">${icon("send", 16)} ${t("rv_send")}</button></div>`; }).join("")}`;
+  },
   side(sim) {
     const s = STORE.state, ids = STORE.data.areas.features.map((f) => f.properties.id);
     const bn = ids.filter((id) => ENGINE.areaStatus(sim, id, s.dir, s.year).status === "bottleneck").length;
-    const late = STORE.data.upgrades.filter((u) => ENGINE.upYear(u, s.applied) > u.year_desired).length;
+    const late = ENGINE.upgrades(s.applied).filter((u) => ENGINE.upYear(u, s.applied) > u.year_desired).length;
     const st = ENGINE.realStats();
     const rows = ids.map((id) => ({ id, d: ENGINE.deadline(sim, id, s.dir), now: ENGINE.areaStatus(sim, id, s.dir, s.year) }))
       .sort((a, b) => (a.d?.first ?? 9999) - (b.d?.first ?? 9999));
@@ -315,6 +336,7 @@ const OverviewPage = {
         <div><b>${Math.round(st.mw).toLocaleString(lang() === "nl" ? "nl-NL" : "en-GB")}</b><span>${t("k_queue")}</span></div>
         <div><b class="${firstDec?.late ? "bad" : ""}">${firstDec ? (firstDec.late ? t("too_late") : `${t("pmiek")} ${firstDec.pmiek}`) : "–"}</b><span>${t("k_first")}</span></div>
       </div>
+      ${this.reviews(sim)}
       <div class="side-h"><h2>${t("attention")}</h2><p class="small muted">${t("attention_lead")}</p></div>
       ${rows.filter((r) => s.showAll || r.d || r.now.status !== "room").map((r) => `<a class="area-row" href="#/planner/gebied/${r.id}">
         <h3>${esc(ENGINE.area(r.id).name)}</h3>${pill(STATUS_CLASS[r.now.status], t(r.now.status))}
@@ -334,7 +356,7 @@ const AreaPage = {
       const st = ENGINE.areaStatus(sim, id, s.dir, y).status;
       return `<button data-y="${y}" class="${y === s.year ? "on" : ""}" style="background:${MAPKIT.COL[st]};opacity:${st === "room" ? .85 : 1}">${y}</button>`;
     }).join("");
-    const ups = ENGINE.upgradesIn(id).map((u) => {
+    const ups = ENGINE.upgradesIn(id, s.applied).map((u) => {
       const y = ENGINE.upYear(u, s.applied), dl = y - u.year_desired;
       const affected = ENGINE.orders().filter((o) => o.area_id === id && ENGINE.oDir(o) === s.dir && o.year_needed <= y);
       return `<div class="upg"><b>${title(u)}</b><span class="delay ${dl > 0 ? "" : "ok"}">${dl > 0 ? t("delay_y", { n: dl }) : t("on_time_u")}</span>
@@ -400,7 +422,7 @@ const AreaPage = {
     const f = STORE.data.areas.features.find((x) => x.properties.id === id);
     MAPKIT.drawRealAreas(g, s.dir, { subtle: true });
     L.geoJSON(f, { pane: "lines", style: { color: MAPKIT.COL.navy, weight: 3, fill: false, dashArray: "6 4" }, interactive: false }).addTo(g);
-    MAPKIT.drawUpgrades(g, s.applied, 2026, { only: ENGINE.upgradesIn(id).map((u) => u.id) });
+    MAPKIT.drawUpgrades(g, s.applied, 2026, { only: ENGINE.upgradesIn(id, s.applied).map((u) => u.id) });
     MAPKIT.drawOrders(g, sim, {});
     map.fitBounds(L.geoJSON(f).getBounds().pad(0.15));
     return () => { chart.destroy(); map.remove(); };
@@ -409,6 +431,7 @@ const AreaPage = {
 
 // =====================================================================================  PLANNER: simulator
 const SimPage = {
+  picked: [], // grid upgrades the planner added to the list (view only, not part of the decision)
   html() {
     return `<div class="sim">
       <aside id="sim-left"></aside>
@@ -429,21 +452,46 @@ const SimPage = {
       MAPKIT.drawOrders(g, sim, {});
       const areaOpts = STORE.data.areas.features.map((f) => `<option value="${f.properties.id}" ${f.properties.id === s.simArea ? "selected" : ""}>${esc(f.properties.name)}</option>`).join("");
       const q = s.simArea ? ENGINE.orders().filter((o) => o.area_id === s.simArea && o.category !== "battery") : [];
+      // only the grid upgrades that matter for this decision: the chosen area's, the ones picked, and every one changed or new
+      const d = s.draft, a = s.applied, NEW = d.newUpgrades || [], OFF = d.removedUpgrades || [];
+      const all = STORE.data.upgrades.concat(NEW);
+      const changed = (u) => u.is_new || OFF.includes(u.id) || ENGINE.upYear(u, d) !== ENGINE.upYear(u, a);
+      const shown = all.filter((u) => u.area_id === s.simArea || this.picked.includes(u.id) || changed(u));
+      const yearSel = (u) => {
+        const y = ENGINE.upYear(u, d), from = u.is_new ? 2027 : Math.min(u.year_desired, y);
+        return `<select class="yr-sel" data-up="${u.id}" aria-label="${t("sim_upg_ready")}: ${esc(title(u))}">${Array.from({ length: 2036 - from + 1 }, (_, i) => from + i)
+          .map((v) => `<option value="${v}" ${v === y ? "selected" : ""}>${v}</option>`).join("")}${u.is_new ? "" : `<option value="off" ${OFF.includes(u.id) ? "selected" : ""}>${t("sim_upg_off")}</option>`}</select>`;
+      };
+      const upRow = (u) => {
+        const area = ENGINE.area(u.area_id)?.name || "", was = ENGINE.upYear(u, a), off = OFF.includes(u.id);
+        const sub = u.is_new ? `${t("sim_new_tag")}, +${u.mw_added_offtake} MW` : off ? t("sim_upg_off").toLowerCase() : ENGINE.upYear(u, d) !== was ? `${t("now")} ${was}` : t(ENGINE.upStatus(u, d, 2026));
+        const x = u.is_new || (this.picked.includes(u.id) && u.area_id !== s.simArea && !changed(u));
+        return `<div class="pick-row ${changed(u) ? "changed" : ""}"><div><b>${esc(title(u))}</b><span>${esc(area)} · ${sub}</span></div>${yearSel(u)}
+          ${x ? `<button type="button" class="btn btn-quiet" data-unpick="${u.id}" aria-label="${t(u.is_new ? "sim_bat_remove" : "sim_upg_hide")}">${icon("x", 14)}</button>` : "<span></span>"}</div>`;
+      };
+      const pickable = all.filter((u) => !shown.includes(u));
+      const KIND_MW = { transformer: 25, new_station: 80, line: 40 };
+      this.newKind ??= "transformer";
       left.innerHTML = `<h2>${t("sim_title")}</h2><p class="small muted" style="margin-top:4px">${t("sim_lead")}</p>
         <div class="seg" style="margin-top:14px" id="s-dir"><button data-d="afname" class="${s.dir === "afname" ? "on" : ""}">${t("afname")}</button><button data-d="teruglevering" class="${s.dir === "teruglevering" ? "on" : ""}">${t("teruglevering")}</button></div>
         <div class="field" style="margin-top:14px"><label>${t("view_proj")} <b id="s-yv">${s.year}</b></label><input type="range" id="s-yr" min="2026" max="2035" value="${s.year}" style="width:100%;accent-color:var(--navy)"></div>
+        <div class="field"><label for="s-area">${t("area")}</label><select id="s-area"><option value="">${t("sim_choose")}</option>${areaOpts}</select></div>
         <h3 style="margin-top:18px">${t("sim_upg")}</h3>
-        ${STORE.data.upgrades.map((u) => { const y = ENGINE.upYear(u, s.draft), was = ENGINE.upYear(u, s.applied);
-          return `<div class="upg"><b style="font-size:13px">${title(u)}</b><span class="${y !== was ? "delay" : "small muted"}">${y}</span>
-            <input type="range" min="${u.year_desired}" max="2036" value="${y}" data-up="${u.id}" aria-label="${title(u)}"></div>`; }).join("")}
+        ${shown.length ? shown.map(upRow).join("") : `<p class="small muted">${t("sim_upg_lead")}</p>`}
+        ${pickable.length ? `<div class="field" style="margin-top:8px"><select id="s-pick"><option value="">${t("sim_upg_pick")}</option>${pickable.map((u) => `<option value="${u.id}">${esc(title(u))}</option>`).join("")}</select></div>` : ""}
+        <details class="new-upg" ${this.newOpen ? "open" : ""}><summary>${icon("plus", 16)} ${t("sim_new")}</summary>
+          <div class="field"><label for="s-nk">${t("sim_new_kind")}</label><select id="s-nk">${Object.keys(KIND_MW).map((k) => `<option value="${k}" ${k === this.newKind ? "selected" : ""}>${t("k_" + k)}</option>`).join("")}</select></div>
+          <div class="grid2"><div class="field"><label for="s-nmw">${t("sim_new_mw")}</label><input id="s-nmw" type="number" min="1" max="300" value="${this.newMW ?? KIND_MW[this.newKind]}"></div>
+          <div class="field"><label for="s-ny">${t("sim_upg_ready")}</label><select id="s-ny">${Array.from({ length: 10 }, (_, i) => 2027 + i).map((v) => `<option ${v === (this.newYear ?? 2030) ? "selected" : ""}>${v}</option>`).join("")}</select></div></div>
+          <button class="btn" id="s-new" ${s.simArea ? "" : "disabled"}>${icon("plus")} ${s.simArea ? t("sim_new_btn", { area: esc(ENGINE.area(s.simArea).name) }) : t("sim_choose")}</button>
+        </details>
         <h3 style="margin-top:18px">${t("sim_bat")}</h3>
-        <div class="field"><select id="s-area"><option value="">${t("sim_choose")}</option>${areaOpts}</select></div>
         <div class="field"><label for="s-mw">${t("sim_bat_mw")}</label>
           <div class="bat-mw"><span class="seg" id="s-mw-pre">${[5, 10, 20, 50].map((v) => `<button type="button" data-mw="${v}" class="${v === s.batMW ? "on" : ""}">${v}</button>`).join("")}</span>
           <input id="s-mw" type="number" min="1" max="200" step="1" value="${s.batMW}" aria-label="${t("sim_bat_mw")}"></div></div>
-        <button class="btn" id="s-bat" ${s.simArea ? "" : "disabled"}>${icon("battery-charging")} ${t("sim_bat_btn", { mw: s.batMW })}</button>
-        ${s.draft.batteries.length ? `<p class="small muted" style="margin-top:12px">${t("sim_bat_placed")}</p>${s.draft.batteries.map((b) => `<div class="bat-row">${icon("battery-charging", 16)}<span><b>${b.mw_flex} MW</b> · ${esc(ENGINE.area(b.area_id)?.name || "")}</span><button type="button" class="btn btn-quiet" data-unbat="${b.id}" aria-label="${t("sim_bat_remove")}">${icon("x", 14)}</button></div>`).join("")}` : ""}
-        ${q.length ? `<h3 style="margin-top:18px">${t("sim_withdraw")}</h3>${q.map((o) => `<label style="display:flex;gap:8px;align-items:center;font-size:13px;padding:4px 0"><input type="checkbox" data-cancel="${o.id}" ${s.draft.cancelled.includes(o.id) ? "checked" : ""}> ${esc(title(o))}, ${ENGINE.oMW(o)} MW</label>`).join("")}` : ""}`;
+        <button class="btn" id="s-bat" ${s.simArea ? "" : "disabled"}>${icon("battery-charging")} ${s.simArea ? t("sim_bat_btn", { mw: s.batMW }) : t("sim_choose")}</button>
+        ${d.batteries.length ? `<p class="small muted" style="margin-top:12px">${t("sim_bat_placed")}</p>${d.batteries.map((b) => `<div class="bat-row">${icon("battery-charging", 16)}<span><b>${b.mw_flex} MW</b> · ${esc(ENGINE.area(b.area_id)?.name || "")}</span><button type="button" class="btn btn-quiet" data-unbat="${b.id}" aria-label="${t("sim_bat_remove")}">${icon("x", 14)}</button></div>`).join("")}` : ""}
+        ${q.length ? `<h3 style="margin-top:18px">${t("sim_withdraw")}</h3>${q.map((o) => `<label style="display:flex;gap:8px;align-items:center;font-size:13px;padding:4px 0"><input type="checkbox" data-cancel="${o.id}" ${d.cancelled.includes(o.id) ? "checked" : ""}> ${esc(title(o))}, ${ENGINE.oMW(o)} MW</label>`).join("")}` : ""}`;
       right.innerHTML = `<h2>${t("effect")}</h2><p class="small muted">${t("now")} → ${t("after")}</p>
         <div class="compare">${["proceeds", "delayed", "not_possible"].map((k, i) => `<div><b>${D.before[i]} → ${D.after[i]}</b><span>${t(k)}</span></div>`).join("")}</div>
         ${D.out.length ? D.out.map((c) => `<div class="change"><b>${esc(title(c.o) || c.id)}</b> ${c.o?.mine ? pill("s-neutral", t("role_customer")) : ""}<br>
@@ -454,7 +502,34 @@ const SimPage = {
       left.querySelectorAll("#s-dir button").forEach((b) => (b.onclick = () => { s.dir = b.dataset.d; draw(); }));
       left.querySelector("#s-yr").oninput = (e) => { s.year = +e.target.value; left.querySelector("#s-yv").textContent = s.year; };
       left.querySelector("#s-yr").onchange = () => draw();
-      left.querySelectorAll("[data-up]").forEach((i) => (i.onchange = () => { s.draft.upgradeYears = { ...s.draft.upgradeYears, [i.dataset.up]: +i.value }; draw(); }));
+      left.querySelectorAll("[data-up]").forEach((i) => (i.onchange = () => {
+        const id = i.dataset.up, off = i.value === "off";
+        d.removedUpgrades = off ? [...OFF.filter((x) => x !== id), id] : OFF.filter((x) => x !== id);
+        if (!off) d.upgradeYears = { ...d.upgradeYears, [id]: +i.value };
+        draw();
+      }));
+      left.querySelectorAll("[data-unpick]").forEach((b) => (b.onclick = () => {
+        const id = b.dataset.unpick;
+        this.picked = this.picked.filter((x) => x !== id);
+        d.newUpgrades = NEW.filter((x) => x.id !== id);
+        draw();
+      }));
+      left.querySelector("#s-pick")?.addEventListener("change", (e) => { if (e.target.value) { this.picked = [...this.picked, e.target.value]; draw(); } });
+      const details = left.querySelector(".new-upg");
+      details.ontoggle = () => (this.newOpen = details.open);
+      left.querySelector("#s-nk").onchange = (e) => { this.newKind = e.target.value; this.newMW = null; left.querySelector("#s-nmw").value = KIND_MW[this.newKind]; };
+      left.querySelector("#s-nmw").onchange = (e) => (this.newMW = Math.max(1, Math.min(300, Math.round(+e.target.value) || KIND_MW[this.newKind])));
+      left.querySelector("#s-ny").onchange = (e) => (this.newYear = +e.target.value);
+      left.querySelector("#s-new").onclick = () => {
+        const f = STORE.data.areas.features.find((x) => x.properties.id === s.simArea); if (!f) return;
+        const st = stationFor(s.simArea), c = st ? { lat: st.lat + 0.014, lng: st.lon + 0.02 } : L.geoJSON(f).getBounds().getCenter();
+        const mw = this.newMW ?? KIND_MW[this.newKind], y = this.newYear ?? 2030, nm = f.properties.name;
+        d.newUpgrades = [...NEW, { id: "n-" + Date.now(), is_new: true, area_id: s.simArea, kind: this.newKind,
+          title_nl: `${nm}: ${TEXT.nl["k_" + this.newKind].toLowerCase()} (nieuw)`, title_en: `${nm}: ${TEXT.en["k_" + this.newKind].toLowerCase()} (new)`,
+          year_desired: y, year_feasible: y, year_latest: y, lead_years: 4, mw_added_offtake: mw, mw_added_feed_in: mw,
+          lat: c.lat, lon: c.lng, infra_status: "planned", source_document: "Simulator" }];
+        this.newMW = null; draw();
+      };
       const setMW = (v) => { s.batMW = Math.max(1, Math.min(200, Math.round(+v) || 20)); draw(); };
       left.querySelectorAll("#s-mw-pre button").forEach((b) => (b.onclick = () => setMW(b.dataset.mw)));
       left.querySelector("#s-mw").onchange = (e) => setMW(e.target.value);
@@ -473,7 +548,7 @@ const SimPage = {
       right.querySelector("#s-apply").onclick = () => {
         let n = 0;
         for (const c of D.out) {
-          if (!c.o?.mine) continue; n++;
+          if (!c.o?.mine || pending(c.o)) continue; n++;
           const list = (s.events[c.id] ??= []);
           list.forEach((e) => { if (e.kind === "now") e.kind = "done"; });
           list.push({ date: TODAY, kind: c.to?.year != null && c.from?.year != null && c.to.year < c.from.year ? "now" : "warn", key: "ev_changed",
