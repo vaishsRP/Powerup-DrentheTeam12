@@ -38,15 +38,15 @@ const MINE = ["p-001", "p-005"]; // the demo customer's own projects (a develope
 
 async function loadData() {
   const get = (p) => fetch(p).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-  const [areas, upgrades, plans, lines, osm, realAreas, realLines, realStations, muni, outline] = await Promise.all([
+  const [areas, upgrades, plans, lines, osm, realAreas, realLines, realStations, muni, outline, gaps] = await Promise.all([
     get("../data/app/areas.geojson"), get("../data/app/upgrades.json"), get("../data/app/plans.json"), get("../data/app/lines.json"),
     get("../data/drenthe-substations-osm.json"), get("../data/real/drenthe-supply-areas.geojson"),
     get("../data/real/drenthe-hv-lines.geojson"), get("../data/real/drenthe-hv-stations.geojson"), get("../data/drenthe-municipalities.geojson"),
-    get("../data/app/drenthe-outline.geojson"),
+    get("../data/app/drenthe-outline.geojson"), get("../data/real/drenthe-supply-gaps.geojson"),
   ]);
   if (!areas || !upgrades || !plans) throw new Error("data/app not found");
   const stations = (Array.isArray(osm) ? osm : Object.values(osm || {}).find(Array.isArray) || []);
-  STORE.data = { areas, upgrades, plans: plans.filter((p) => DEMO_PLANS.includes(p.id)), lines: lines || [], stations, realAreas, realLines, realStations, muni, outline };
+  STORE.data = { areas, upgrades, plans: plans.filter((p) => DEMO_PLANS.includes(p.id)), lines: lines || [], stations, realAreas, realLines, realStations, muni, outline, gaps };
 
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");

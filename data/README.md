@@ -7,6 +7,7 @@
 | `real/tennet-cables.geojson` | 457 underground high-voltage cable segments around Drenthe: status, voltage, cable id, construction year | TenneT (TenneT_Assets_Hoogspanning). Attribution: "Bron: TenneT" | 2026-11-12 |
 | `real/osm-construction.geojson` | Substations under construction (empty when Overpass is unavailable) | © OpenStreetMap contributors, ODbL | 2026-11-12 |
 | `real/drenthe-supply-areas.geojson` | 34 regional supply areas in Drenthe with capaciteitskaart status codes (0–3) for offtake and feed-in, queue MW and requests, plus the TenneT area status and "solved in" year. Made by `scripts/prepare_real_data.py` | Capaciteitskaart, Netbeheer Nederland (ArcGIS services behind capaciteitskaart.netbeheernederland.nl). Attribution: "Bron: Capaciteitskaart, Netbeheer Nederland" | 2026-11-12 |
+| `real/drenthe-supply-gaps.geojson` | The parts of Drenthe (about 2%) not covered by any supply area above, drawn grey as "no data" on the map. Made by `scripts/build_supply_gaps.py` | Derived: CBS/PDOK municipality borders minus the capaciteitskaart supply areas | 2026-11-12 |
 | `real/drenthe-hv-lines.geojson` | TenneT high-voltage lines in and around Drenthe, merged into one overhead and one underground geometry. Made by `scripts/prepare_real_data.py` | TenneT (TenneT_Assets_Hoogspanning). Attribution: "Bron: TenneT" | 2026-11-12 |
 | `real/drenthe-hv-stations.geojson` | 40 TenneT station points (centroids) in and around Drenthe. Made by `scripts/prepare_real_data.py` | TenneT (TenneT_Assets_Hoogspanning). Attribution: "Bron: TenneT" | 2026-11-12 |
 

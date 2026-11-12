@@ -4,7 +4,7 @@ const MAPKIT = (() => {
   // Keys navy/blue are kept for older callers and now hold the brand ink and teal.
   const COL = { room: "#5DB565", limited: "#F2C94C", bottleneck: "#E25A6B", investigate: "#F2994A", shortage: "#E25A6B",
     proceeds: "#5DB565", delayed: "#F2994A", not_possible: "#E25A6B", navy: "#022A2C", blue: "#0A5353", leaf: "#39A24A",
-    grey: "#4F625D", brown: "#4F625D", build: "#8E5BD9", veil: "#F5F8F4" };
+    grey: "#4F625D", brown: "#4F625D", build: "#8E5BD9", veil: "#F5F8F4", nodata: "#B9C2BC" };
   const CODE = [COL.room, COL.limited, COL.investigate, COL.shortage];
   const LINE = {
     operational: { color: COL.grey, weight: 2.5, dashArray: null }, overhead: { color: COL.grey, weight: 2.5, dashArray: null },
@@ -31,6 +31,14 @@ const MAPKIT = (() => {
     }
   }
 
+  // a page with a floating toolbar over the map passes popupTop, so popups open below it instead of behind it
+  const adjustPan = L.Popup.prototype._adjustPan;
+  L.Popup.prototype._adjustPan = function () {
+    const top = this._map?.options.popupTop;
+    if (top) this.options.autoPanPaddingTopLeft = [16, top];
+    return adjustPan.apply(this, arguments);
+  };
+
   function create(el, opts = {}) {
     // Fixed maps: no dragging or zooming by the user, only clicks. Each page sets its own view.
     const map = L.map(el, {
@@ -41,6 +49,7 @@ const MAPKIT = (() => {
       boxZoom: false,
       touchZoom: false,
       keyboard: false,
+      popupTop: opts.popupTop,
       zoomSnap: 0.25, // fixed views: fit each page's area snugly instead of jumping a whole zoom level
       // Avoid zoom-transition callbacks firing after a page has been replaced.
       zoomAnimation: false,
@@ -75,8 +84,10 @@ const MAPKIT = (() => {
   function drawRealAreas(g, dir, opts = {}) {
     const fc = STORE.data.realAreas;
     if (!fc) return false;
+    // the capaciteitskaart leaves small parts of Drenthe without a supply area: show them grey, not as empty white
+    if (STORE.data.gaps) L.geoJSON(STORE.data.gaps, { pane: "areas", interactive: false, style: { stroke: false, fillColor: COL.nodata, fillOpacity: opts.subtle ? 0.35 : 0.6 } }).addTo(g);
     L.geoJSON(fc, { pane: "areas", style: (f) => ({ weight: 0.8, color: "#fff", fillColor: CODE[ENGINE.ckCode(f.properties, dir)], fillOpacity: opts.subtle ? 0.32 : 0.62 }),
-      onEachFeature: (f, l) => { l.bindTooltip(`${f.properties.name}: ${t("cap" + ENGINE.ckCode(f.properties, dir))}`, { sticky: true }); l.bindPopup(realPopup(f.properties)); } }).addTo(g);
+      onEachFeature: (f, l) => l.bindPopup(realPopup(f.properties)) }).addTo(g);
     return true;
   }
 
@@ -88,8 +99,9 @@ const MAPKIT = (() => {
       },
       onEachFeature: (f, l) => {
         const s = ENGINE.areaStatus(sim, f.properties.id, dir, year);
-        l.bindTooltip(`${f.properties.name}: ${t(s.status)}, ${Math.round(s.load)} / ${Math.round(s.cap)} MW`, { sticky: true });
+        // info on click, not on hover (hover boxes covered too much of the map); a page with its own click action skips it
         if (opts.onClick) l.on("click", () => opts.onClick(f.properties.id));
+        else l.bindPopup(`<h4>${f.properties.name}</h4><table>${row("Status", t(s.status))}${row(`${t("peak")} / ${t("capacity")}`, `${Math.round(s.load)} / ${Math.round(s.cap)} MW`)}</table>`);
       } }).addTo(g);
   }
 
@@ -97,13 +109,13 @@ const MAPKIT = (() => {
   function drawStations(g, opts = {}) {
     for (const st of STORE.data.stations) {
       L.circleMarker([st.lat, st.lon], { pane: "points", radius: 6, weight: 2, color: "#fff", fillColor: COL.navy, fillOpacity: 1 })
-        .bindTooltip(`${st.name.replace(/^\d+ kV /, "")}, ${st.voltages_kv.join("/")} kV, ${t("operational").toLowerCase()}`).addTo(g);
+        .bindPopup(`<h4>${st.name.replace(/^\d+ kV /, "")}</h4><div class="pop-sub">${st.voltages_kv.join("/")} kV, ${t("operational").toLowerCase()}</div>`).addTo(g);
     }
     if (!opts.detail) return; // the ~40 small TenneT station points only on request: too busy for the overview
     for (const f of STORE.data.realStations?.features || []) {
       const [lon, lat] = f.geometry.coordinates;
       L.circleMarker([lat, lon], { pane: "points", radius: 3, weight: 1, color: COL.grey, fillColor: "#fff", fillOpacity: 1 })
-        .bindTooltip(`${f.properties.name}, TenneT`).addTo(g);
+        .bindPopup(`<h4>${f.properties.name}</h4><div class="pop-sub">TenneT</div>`).addTo(g);
     }
   }
   function upgradePopup(u, dec, year) {
@@ -123,10 +135,9 @@ const MAPKIT = (() => {
       const m = L.circleMarker([u.lat, u.lon], { pane: "points", radius: 11, weight: 3, color, dashArray: st === "operational" ? null : "4 3", fillColor: "#fff", fillOpacity: 0.7 })
         .bindPopup(upgradePopup(u, dec, year)).addTo(g);
       const yrs = latest > y ? `${y}–${latest}` : `${y}`;
-      // labels: true (all), "risk" (only delayed/uncertain ones permanent, the rest on hover), false (none)
+      // labels: true (all), "risk" (only delayed/uncertain ones get a year label; the rest show it in the popup), false (none)
       if (opts.labels !== false && st !== "operational" && (opts.labels !== "risk" || risk))
         m.bindTooltip(yrs, { permanent: true, direction: "right", offset: [11, 0], className: `yr${risk ? " risk" : ""}` });
-      else m.bindTooltip(`${u[`title_${L_()}`]}: ${st === "operational" ? t("operational").toLowerCase() : yrs}`);
     }
   }
   const lineStatus = (l, year) => (l.year_feasible <= year ? (l.cable ? "underground" : "operational") : l.cable ? "planned_cable" : l.infra_status || "planned");
@@ -136,18 +147,17 @@ const MAPKIT = (() => {
         const parts = f.geometry.type === "MultiLineString" ? f.geometry.coordinates : [f.geometry.coordinates];
         const near = parts.filter((p) => p.some(([x, y]) => Math.abs(y - opts.near[0]) < 0.055 && Math.abs(x - opts.near[1]) < 0.085));
         if (near.length) L.geoJSON({ type: "MultiLineString", coordinates: near }, { pane: "lines", style: { ...LINE[f.properties.kind === "cable" ? "underground" : "overhead"], opacity: 0.9 } })
-          .bindTooltip(`${t(f.properties.kind === "cable" ? "underground" : "overhead")}, TenneT`).addTo(g);
+          .bindPopup(`<h4>${t(f.properties.kind === "cable" ? "underground" : "overhead")}</h4><div class="pop-sub">TenneT</div>`).addTo(g);
         continue;
       }
       L.geoJSON(f, { pane: "lines", style: { ...LINE[f.properties.kind === "cable" ? "underground" : "overhead"], weight: 2, opacity: 0.75 } })
-        .bindTooltip(`${t(f.properties.kind === "cable" ? "underground" : "overhead")}, TenneT`, { sticky: true }).addTo(g);
+        .bindPopup(`<h4>${t(f.properties.kind === "cable" ? "underground" : "overhead")}</h4><div class="pop-sub">TenneT</div>`).addTo(g);
     }
     for (const l of STORE.data.lines) {
       if (opts.stationIds && !l.station_ids.some((id) => opts.stationIds.includes(id))) continue;
       const st = lineStatus(l, year);
       L.polyline(l.route.map((p) => [p.lat, p.lon]), { pane: "lines", ...LINE[st] })
-        .bindPopup(`<h4>${l[`title_${L_()}`]}</h4><table>${row("Status", t(st))}${row(t("feasible"), `${l.year_feasible}–${l.year_latest}`)}${row("", l.source)}</table>`)
-        .bindTooltip(`${l[`title_${L_()}`]}: ${t(st).toLowerCase()}`, { sticky: true }).addTo(g);
+        .bindPopup(`<h4>${l[`title_${L_()}`]}</h4><table>${row("Status", t(st))}${row(t("feasible"), `${l.year_feasible}–${l.year_latest}`)}${row("", l.source)}</table>`).addTo(g);
     }
   }
 
@@ -157,9 +167,9 @@ const MAPKIT = (() => {
       if (opts.mineOnly && !o.mine) continue;
       if (opts.skip === o.id) continue;
       const r = sim.res[o.id], st = (sim.dec.cancelled || []).includes(o.id) ? null : r?.status;
-      L.circleMarker([o.lat, o.lon], { pane: "points", radius: o.mine ? 8 : 6, weight: 2, color: "#fff", fillColor: st ? COL[st] : "#999", fillOpacity: 1 })
-        .bindTooltip(`${o[`title_${L_()}`]}, ${ENGINE.oMW(o)} MW: ${st ? `${t(st)} ${ENGINE.estRange(r)}` : "–"}`)
-        .on("click", () => opts.onClick && opts.onClick(o)).addTo(g);
+      const m = L.circleMarker([o.lat, o.lon], { pane: "points", radius: o.mine ? 8 : 6, weight: 2, color: "#fff", fillColor: st ? COL[st] : "#999", fillOpacity: 1 }).addTo(g);
+      if (opts.onClick) m.on("click", () => opts.onClick(o));
+      else m.bindPopup(`<h4>${o[`title_${L_()}`]}</h4><div class="pop-sub">${ENGINE.oMW(o)} MW</div><table>${row("Status", st ? t(st) : "–")}${row(t("expected"), st ? ENGINE.estRange(r) : "–")}</table>`);
     }
   }
   function pin(g, lat, lon, html) {
@@ -194,7 +204,7 @@ const MAPKIT = (() => {
     return c;
   }
   const sw = (color, text, op = 0.75) => `<div><span class="sw" style="background:${color};opacity:${op}"></span>${text}</div>`;
-  const legendReal = (subtle) => `<section><b>${t("view_today")}: ${t("view_today_hint")}</b>` + [0, 1, 2, 3].map((c) => sw(CODE[c], t("cap" + c), subtle ? 0.5 : 0.8)).join("") + `</section>`;
+  const legendReal = (subtle) => `<section><b>${t("view_today")}: ${t("view_today_hint")}</b>` + [0, 1, 2, 3].map((c) => sw(CODE[c], t("cap" + c), subtle ? 0.5 : 0.8)).join("") + sw(COL.nodata, t("no_data"), subtle ? 0.5 : 0.8) + `</section>`;
   const legendProj = () => `<section><b>${t("view_proj")}</b>` + ["room", "limited", "bottleneck"].map((k) => sw(COL[k], t(k), 0.8)).join("") + `</section>`;
   const legendInfra = () => `<section><b>${t("l_infra")}</b>` +
     `<div><span class="pt" style="background:${COL.navy}"></span>${t("operational")}</div>` +

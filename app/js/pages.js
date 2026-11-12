@@ -272,7 +272,7 @@ const OverviewPage = {
       <aside class="dash-side" id="side"></aside></div>`;
   },
   mount(root) {
-    const map = MAPKIT.create(root.querySelector("#map"), { zoom: 9 }), g = L.layerGroup().addTo(map);
+    const map = MAPKIT.create(root.querySelector("#map"), { zoom: 9, popupTop: 125 }), g = L.layerGroup().addTo(map);
     let leg = null;
     // leave room for the floating toolbar (top) and the legend (bottom)
     const fit = setTimeout(() => { if (!map._container) return; map.invalidateSize(); map.fitBounds([[52.62, 6.15], [53.2, 7.1]], { paddingTopLeft: [10, 90], paddingBottomRight: [10, 150] }); }, 60);

@@ -58,6 +58,7 @@ const TEXT = {
     first_estimate: "Eerste inschatting",
     // planner
     ov_title: "Overzicht Drenthe", view_today: "Vandaag", view_today_hint: "capaciteitskaart", view_proj: "Projectie", view_proj_hint: "register",
+    no_data: "Geen gegevens op de capaciteitskaart", // NL?
     layers: "Lagen", l_areas: "Gebieden", l_infra: "Netinfrastructuur", l_stations: "Onderstations", l_upgrades: "Netuitbreidingen", l_cables: "Hoogspanningsnet (TenneT)", l_projects: "Projecten",
     k_bottlenecks: "gebieden met knelpunt in", k_delayed: "netuitbreidingen te laat", k_queue: "MW in de wachtrij (echt)", k_first: "eerste besluit nodig",
     too_late: "Te laat", attention: "Gebieden die aandacht vragen", attention_lead: "Gesorteerd op het eerste jaar met een knelpunt.",
@@ -146,6 +147,7 @@ const TEXT = {
     prio_note: "Priority under the ACM framework", submit: "Submit request", submitted: "Request submitted",
     first_estimate: "First estimate",
     ov_title: "Drenthe overview", view_today: "Today", view_today_hint: "capacity map", view_proj: "Projection", view_proj_hint: "register",
+    no_data: "No data on the capacity map",
     layers: "Layers", l_areas: "Areas", l_infra: "Grid infrastructure", l_stations: "Substations", l_upgrades: "Grid upgrades", l_cables: "HV grid (TenneT)", l_projects: "Projects",
     k_bottlenecks: "areas with a bottleneck in", k_delayed: "grid upgrades late", k_queue: "MW in the queue (real)", k_first: "first decision needed",
     too_late: "Too late", attention: "Areas that need attention", attention_lead: "Sorted by the first year with a bottleneck.",
