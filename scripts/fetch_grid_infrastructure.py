@@ -7,10 +7,10 @@ Fetch REAL high-voltage grid infrastructure around Drenthe for the map's infrast
    Attribution: "© OpenStreetMap contributors" (ODbL).
 
 Usage (repo root):  pip install requests   then   python scripts/fetch_grid_infrastructure.py
-Output (map.js picks these up automatically when present):
-  data/real/tennet-lines.geojson      lines/cables touching Drenthe
-  data/real/tennet-stations.geojson   stations touching Drenthe
-  data/real/osm-construction.geojson  substations under construction in Drenthe
+Output (raw; then run scripts/prepare_real_data.py to make the small files the map loads):
+  data/real/raw/tennet-lines.geojson      lines/cables touching Drenthe
+  data/real/raw/tennet-stations.geojson   stations touching Drenthe
+  data/real/raw/osm-construction.geojson  substations under construction in Drenthe
 Prints each layer's fields so you can check what came back.
 """
 import json
@@ -19,7 +19,7 @@ import requests
 
 TENNET = "https://services-eu1.arcgis.com/WjozPuR5ROn6NZE8/arcgis/rest/services/TenneT_Assets_Hoogspanning/FeatureServer"
 BBOX = "6.10,52.60,7.15,53.20"  # around Drenthe, WGS84
-os.makedirs("data/real", exist_ok=True)
+os.makedirs("data/real/raw", exist_ok=True)
 
 
 def esri_geom(g):
@@ -64,7 +64,7 @@ for lyr in meta.get("layers", []):
     (lines if gtype == "esriGeometryPolyline" else stations).extend(out)
 
 for name, fs in (("tennet-lines", lines), ("tennet-stations", stations)):
-    with open(f"data/real/{name}.geojson", "w", encoding="utf-8") as fh:
+    with open(f"data/real/raw/{name}.geojson", "w", encoding="utf-8") as fh:
         json.dump({"type": "FeatureCollection", "source": "TenneT (TenneT_Assets_Hoogspanning)", "features": fs}, fh, ensure_ascii=False)
     print(f"saved data/real/{name}.geojson ({len(fs)})")
 
@@ -81,7 +81,7 @@ try:
         lon = e.get("lon") or e.get("center", {}).get("lon")
         if lat:
             fs.append({"type": "Feature", "properties": e.get("tags", {}), "geometry": {"type": "Point", "coordinates": [lon, lat]}})
-    with open("data/real/osm-construction.geojson", "w", encoding="utf-8") as fh:
+    with open("data/real/raw/osm-construction.geojson", "w", encoding="utf-8") as fh:
         json.dump({"type": "FeatureCollection", "source": "© OpenStreetMap contributors (ODbL)", "features": fs}, fh, ensure_ascii=False)
     print(f"\nOSM substations under construction: {len(fs)}")
     for f in fs:

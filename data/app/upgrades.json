@@ -21,7 +21,8 @@
   "space_nl": "In aanbouw (mastbouw sept 2026) 🔎",
   "space_en": "Under construction (masts, Sept 2026) 🔎",
   "risk_nl": "Vertraagd door tekort aan aannemers (TenneT IP2026)",
-  "risk_en": "Delayed by contractor shortage (TenneT IP2026)"
+  "risk_en": "Delayed by contractor shortage (TenneT IP2026)",
+  "infra_status": "under_construction"
  },
  {
   "id": "wijster",
@@ -45,7 +46,8 @@
   "space_nl": "Bestemmingsplan: uitspraak Raad van State mei 2026 🔎",
   "space_en": "Zoning plan: Council of State ruling May 2026 🔎",
   "risk_nl": "Ruimtelijke procedure",
-  "risk_en": "Spatial procedure"
+  "risk_en": "Spatial procedure",
+  "infra_status": "planned"
  },
  {
   "id": "hoogeveen",
@@ -69,7 +71,8 @@
   "space_nl": "Bestaand stationsterrein",
   "space_en": "Existing station site",
   "risk_nl": "",
-  "risk_en": ""
+  "risk_en": "",
+  "infra_status": "planned"
  },
  {
   "id": "meppel",
@@ -93,7 +96,8 @@
   "space_nl": "Bestaand stationsterrein",
   "space_en": "Existing station site",
   "risk_nl": "",
-  "risk_en": ""
+  "risk_en": "",
+  "infra_status": "planned"
  },
  {
   "id": "gasselte",
@@ -117,7 +121,8 @@
   "space_nl": "Bestaand stationsterrein",
   "space_en": "Existing station site",
   "risk_nl": "",
-  "risk_en": ""
+  "risk_en": "",
+  "infra_status": "planned"
  },
  {
   "id": "emmen-bargermeer",
@@ -141,7 +146,8 @@
   "space_nl": "Locatie nog in studie",
   "space_en": "Location still in study",
   "risk_nl": "",
-  "risk_en": ""
+  "risk_en": "",
+  "infra_status": "planned"
  },
  {
   "id": "emmen-weerdinge",
@@ -165,7 +171,8 @@
   "space_nl": "Locatie nog in studie",
   "space_en": "Location still in study",
   "risk_nl": "",
-  "risk_en": ""
+  "risk_en": "",
+  "infra_status": "planned"
  },
  {
   "id": "assen-marsdijk",
@@ -189,7 +196,8 @@
   "space_nl": "Locatie nog in studie",
   "space_en": "Location still in study",
   "risk_nl": "",
-  "risk_en": ""
+  "risk_en": "",
+  "infra_status": "planned"
  },
  {
   "id": "klazienaveen",
@@ -213,6 +221,7 @@
   "space_nl": "Locatie nog in studie",
   "space_en": "Location still in study",
   "risk_nl": "",
-  "risk_en": ""
+  "risk_en": "",
+  "infra_status": "planned"
  }
 ]

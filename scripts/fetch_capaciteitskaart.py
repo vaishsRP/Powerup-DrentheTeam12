@@ -5,7 +5,7 @@ Source: capaciteitskaart.netbeheernederland.nl (served by Esri Nederland on beha
 Attribution in the app/video: "Bron: Capaciteitskaart, Netbeheer Nederland".
 
 Usage (from the repo root):  pip install requests   then   python scripts/fetch_capaciteitskaart.py
-Output: data/real/capaciteitskaart-<layer>.geojson   (+ prints the field names and Drenthe rows)
+Output: data/real/raw/capaciteitskaart-<layer>.geojson   (+ prints the field names and Drenthe rows)
 """
 import json
 import os
@@ -68,7 +68,7 @@ def fetch(service, layer_id):
         offset += len(batch)
 
 
-os.makedirs("data/real", exist_ok=True)
+os.makedirs("data/real/raw", exist_ok=True)
 for name, (service, layer_id) in LAYERS.items():
     lid = layer_id if layer_id is not None else first_layer_id(service)
     fields, feats = fetch(service, lid)
@@ -84,6 +84,6 @@ for name, (service, layer_id) in LAYERS.items():
             for f in feats
         ],
     }
-    with open(f"data/real/capaciteitskaart-{name}.geojson", "w", encoding="utf-8") as fh:
+    with open(f"data/real/raw/capaciteitskaart-{name}.geojson", "w", encoding="utf-8") as fh:
         json.dump(gj, fh, ensure_ascii=False)
-    print(f"saved data/real/capaciteitskaart-{name}.geojson")
+    print(f"saved data/real/raw/capaciteitskaart-{name}.geojson")

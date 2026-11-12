@@ -1,0 +1,3 @@
+# Raw downloads are large (50+ MB): never commit them. Run scripts/prepare_real_data.py to make the small files in data/real/.
+*
+!.gitignore

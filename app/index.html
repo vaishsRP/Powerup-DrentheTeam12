@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- Regionale maatregelkaart, v2 (multi-page). Separate from the original app in the repo root so nobody's work breaks.
+     Run from the repo root: python -m http.server 8000, then open http://localhost:8000/app/ -->
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Regionale maatregelkaart</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="topbar"></header>
+  <main></main>
+  <footer><div class="in">Demo · Capaciteitskaart (Netbeheer Nederland), TenneT, Enexis Investeringsplan 2026, CBS/PDOK, © OpenStreetMap contributors. MW-waarden en aanvragen zijn fictief.</div></footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/mapkit.js"></script>
+  <script src="js/pages.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

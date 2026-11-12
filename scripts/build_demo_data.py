@@ -118,8 +118,38 @@ for uid, area, tnl, ten, desired, feasible, verified, lead, kind in U:
         "lat": lat, "lon": lon, "location_approx": x.get("approx", False),
         "space_nl": x.get("space_nl", DEFAULT_SPACE[phase][0]), "space_en": x.get("space_en", DEFAULT_SPACE[phase][1]),
         "risk_nl": x.get("risk_nl", ""), "risk_en": x.get("risk_en", ""),
+        # physical status today: "under_construction" | "planned" (map turns it "operational" once the year slider passes it)
+        "infra_status": "under_construction" if uid == "veenoord-boerdijk" else "planned",
     })
 json.dump(upgrades, open("data/app/upgrades.json", "w"), ensure_ascii=False, indent=1)
+
+# ---------- 3b. Line / cable works (for the map's Cables layer): SCHEMATIC straight routes ----------
+# Years: TenneT IP2026 (RESEARCH.md §10, 🔎); routes: Drents Actieprogramma Netcongestie 2023 (DON-Oost / DON-West).
+# Endpoints outside our station list are placed by hand (approx). Real routes come from scripts/fetch_grid_infrastructure.py.
+def st(area_id):
+    lat, lon = station_xy[area_id]
+    return {"name": area_id, "lat": lat, "lon": lon, "approx": False}
+LINES = [
+    {"id": "l-bargermeer-meeden", "title_nl": "Verzwaring 110 kV-verbinding Bargermeer–Meeden", "title_en": "110 kV line upgrade Bargermeer–Meeden",
+     "route": [st("emmen-bargermeer"), {"name": "Meeden (Groningen)", "lat": 53.137, "lon": 6.925, "approx": True}],
+     "cable": False, "infra_status": "planned", "year_feasible": 2031, "year_latest": 2034, "year_previous": 2028,
+     "station_ids": ["emmen-bargermeer"], "source": "TenneT IP2026 🔎"},
+    {"id": "l-gasselte-veendam-meeden", "title_nl": "Gasselte–Veendam–Meeden (wordt ondergrondse kabel)", "title_en": "Gasselte–Veendam–Meeden (now an underground cable)",
+     "route": [st("gasselte-kraanlanden"), {"name": "Veendam", "lat": 53.105, "lon": 6.876, "approx": True}, {"name": "Meeden", "lat": 53.137, "lon": 6.925, "approx": True}],
+     "cable": True, "infra_status": "planned", "year_feasible": 2033, "year_latest": 2035, "year_previous": 2027,
+     "station_ids": ["gasselte-kraanlanden"], "source": "TenneT IP2026 🔎"},
+    {"id": "l-riegmeer-wijster", "title_nl": "Kabeltracé Hoogeveen Riegmeer–Wijster (Drents-Overijsselse netversterking)", "title_en": "Cable route Hoogeveen Riegmeer–Wijster (Drenthe-Overijssel reinforcement)",
+     "route": [st("hoogeveen"), {"name": "Wijster", "lat": 52.812, "lon": 6.525, "approx": True}],
+     "cable": True, "infra_status": "planned", "year_feasible": 2033, "year_latest": 2036, "year_previous": 2029,
+     "station_ids": ["hoogeveen", "wijster-oosterscheveld"], "source": "Drents Actieprogramma Netcongestie 2023; TenneT IP2026 🔎"},
+    {"id": "l-meppel-zwolle", "title_nl": "Kabeltracé Meppel–Zwolle (Drents-Overijsselse netversterking)", "title_en": "Cable route Meppel–Zwolle (Drenthe-Overijssel reinforcement)",
+     "route": [st("meppel"), {"name": "Zwolle (Overijssel)", "lat": 52.53, "lon": 6.11, "approx": True}],
+     "cable": True, "infra_status": "planned", "year_feasible": 2033, "year_latest": 2036, "year_previous": 2029,
+     "station_ids": ["meppel"], "source": "Drents Actieprogramma Netcongestie 2023; TenneT IP2026 🔎"},
+]
+for l in LINES:
+    l["schematic"] = True
+json.dump(LINES, open("data/app/lines.json", "w"), ensure_ascii=False, indent=1)
 
 # ---------- 4. A few ILLUSTRATIVE plan cards (schema: docs/DATA-SCHEMA.md) ----------
 P = [
