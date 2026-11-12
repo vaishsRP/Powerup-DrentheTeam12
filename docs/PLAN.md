@@ -21,6 +21,14 @@ The regional energy planning table, not the general public:
 
 > "The capaciteitskaart shows today. ETM and TNO's REV calculate futures. What's missing is **the front door**: one shared, always-current register of everyone's plans, wired into the pMIEK → investment-plan cycle, that says **what to do and by when**."
 
+- ⭐ **Evidence that it's wanted.** In its formal response to Enexis' investment plan 2026, the **Province of Drenthe** asked for exactly this:
+  - when and where capacity becomes available, per in-service date
+  - red/orange flags on delayed projects
+  - a quarterly report on progress, changes and **required decisions**
+
+  Enexis answered that the investment plan is "a static document updated once every two years" (RESEARCH.md §9). **Pitch line: "The province asked for this in writing. The investment plan can't do it. A live shared register can."**
+- ⭐ **It builds on the official format.** The plan card = the RVO pMIEK *projectfiche* (project sheet) turned into live shared data, with the official pMIEK phases (RESEARCH.md §8).
+- **Drenthe's reality:** feed-in has **no room** (TenneT congestion study, Dec 2025); offtake is limited, shown yellow on the map. Peak load ×3–5 by 2050 (Energievisie). Key upgrades are late: Veenoord-Boerdijk was needed in 2027 and is now expected in **2031**; Wijster moved from 2027 to **2029**.
 - We **don't** rebuild a capacity heat map, a scenario model or a simulator. Those exist (see RESEARCH.md §1).
 - We **don't** build a scoring model or multi-criteria analysis. Drenthe's pMIEK framework explicitly says it is *not* a multi-criteria analysis. Scoring is also Track 5's territory.
 - We **do** build the shared intake, certainty handling, deadline logic and measure suggestions, and we **export** to existing tools (ESDL/CSV).
@@ -28,7 +36,12 @@ The regional energy planning table, not the general public:
 ## 4. The three deep features (proposed) [DECIDE]
 
 1. **One form: the shared plan register.** A standard "plan card" (see [DATA-SCHEMA.md](DATA-SCHEMA.md)). It records location, MW offtake/feed-in, year needed, **maturity** (idea → planned → permit → contracted), **confidentiality** (public / partners / grid operator only) and **source document**. Plans come in via a web form or an Excel/CSV template, and can be exported as CSV (ESDL export is on the roadmap).
-2. **Deadline checker.** Combines grid lead times with Drenthe's real cycle: the investment plan goes to ACM in **January**, based on the pMIEK adopted in **February** of the year before. The tool works out per plan and per area: *"Capacity needed in 2030 → must be in the pMIEK of Feb 2025 → too late for grid expansion → only measures can help."* It also flags **delayed grid upgrades** (certainty on the grid side, not just the plan side).
+2. **Deadline checker.** Combines grid lead times with Drenthe's real cycle: the investment plan goes to ACM in **January**, based on the pMIEK adopted in **February** of the year before. The tool works out per plan and per area: *"Capacity needed in 2030 → must be in the pMIEK of Feb 2025 → too late for grid expansion → only measures can help."* It also flags **delayed grid upgrades** (certainty on the grid side, not just the plan side). It uses the grid operators' own terms:
+   - *gewenste IBN* = desired in-service date
+   - *maakbare IBN* = feasible in-service date
+   - *uiterlijk startmoment* = latest start date
+
+   It shows the **red/orange delay flags** the province asked for. It also produces a **change report** ("what changed since the last cycle + which decisions are needed by whom"), which automates the province's requested quarterly report and the RVO *agenderen* step.
 3. **Measures map (maatregelkaart).** Per congested area, the tool suggests measures using **real Dutch instruments**:
    - pair feed-in with offtake through cable pooling, or a group transport agreement (GTO) from 2027
    - time-block contract
@@ -60,10 +73,12 @@ Also planned:
 - [ ] "View as" role switcher with confidentiality filtering
 - [ ] Guided demo mode: an auto-play story with NL/EN captions, so the video can be a screen recording
 - [ ] pMIEK project-sheet export (printable page / CSV)
+- [ ] **Change report:** what changed since the last cycle, delays (red/orange), and decisions needed by whom. The province asked for this (RESEARCH.md §9).
 
 **Could (only if ahead)**
 - [ ] Shared database (e.g. Supabase) so two laptops submit to the same register live
-- [ ] "What changed since the last cycle" feed
+
+**Explicitly not:** a "reserve capacity" feature. Reserving for small users ended on 1 July 2026 (RESEARCH.md §9).
 
 **Won't (say so honestly in the pitch: "roadmap")**
 - Login and real access control, live grid data, optimisation algorithms, real ESDL export, neighbourhood-level (low-voltage) drill-down.
@@ -93,7 +108,12 @@ Sources                      Intake                 Register                Engi
   - grid upgrades on time / delayed
 - **Capacity per year:** base capacity + upgrades whose year has arrived.
 - **Status:** Room < 80 % ≤ Limited ≤ 100 % < Bottleneck. These are the teammate mockup's three levels. **[DECIDE]** Should they align to the capaciteitskaart's four categories instead?
-- **Deadline:** if area X needs extra capacity by year *Y* and a grid upgrade takes *L* years, the upgrade must be in the investment plan of Jan (*Y − L*). That plan is based on the pMIEK of Feb (*Y − L − 1*). If that date has passed, the tool says "only measures can help" and points to the measures. *L* is a setting: 7.5 normal / 4 emergency.
+- **Deadline:** if area X needs extra capacity by year *Y* and a grid upgrade takes *L* years, the upgrade must be in the investment plan of Jan (*Y − L*). That plan is based on the pMIEK of Feb (*Y − L − 1*). If that date has passed, the tool says "only measures can help" and points to the measures. *L* depends on the measure type, using Enexis IP2026 averages:
+  - transformer upgrade ≈ 1 yr
+  - station extension ≈ 4 yrs
+  - new station ≈ 7 yrs + initiation
+
+  For named Drenthe stations, use the **real desired vs feasible in-service years** from the Enexis IP2026 table (RESEARCH.md §9). MW stays illustrative except where the table gives shortfall ranges.
 - **24-hour curve:** each plan category has a daily profile shape: housing = evening peak 16–21h, solar = midday, charging = evening/night, industry = flat, electrolyser = flexible. A winter peak day is used for offtake, a sunny summer day for feed-in.
 - **Measure effects:**
   - battery shaves the peak by its MW
@@ -154,7 +174,7 @@ Sources                      Intake                 Register                Engi
 - [ ] Pre-pitch page + speaker notes (by 13:45)
 - [ ] Everything under §5 Must, then Should
 
-## 10. Pre-pitch (Thu 14:00, 5 minutes)
+## 10. Pre-pitch (Thu 14:00, 5 minutes): full speaker notes in [PREPITCH.md](PREPITCH.md)
 
 | Time | Content |
 |---|---|

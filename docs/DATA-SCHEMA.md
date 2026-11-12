@@ -2,7 +2,8 @@
 
 > **Status: draft v0.1. Proposed, open for team comments.** This is the core of our answer to TenneT's question.
 > Design principle: **as few fields as possible** that a municipal planner can fill in within 5 minutes, but enough for a grid operator to calculate with.
-> No standard for this exists yet (TNO asks for one). We base the fields on the MIEK *projectfiche* (project sheet) and on Drenthe's pMIEK questions, and plan an export to ESDL so existing tools can read it.
+> **What exists:** the national **RVO *Handleiding pMIEK*** (June 2024) prescribes a project list and a *projectfiche* (project sheet) for infrastructure projects, with four official phases. They are Word/PDF templates, not data. The same manual recommends a joint provincial database with confidentiality and uniform data formats (see RESEARCH.md §8).
+> **Our plan card = the projectfiche turned into live, shared, machine-readable data**, extended to the *developments* behind the grid projects: housing, solar parks, industry. Grid upgrades use the official pMIEK phases. Export to ESDL is on the roadmap, so existing tools (REV, ETM) can read it.
 
 ## 1. Plan card (one row = one plan)
 
@@ -28,6 +29,10 @@
 | `impact_if_late_nl/_en` | text | no | | for the pMIEK discussion (Drenthe framework question) |
 | `sectors` | list | no | `industry;mobility` | for the pMIEK question "does it serve multiple sectors?" |
 | `updated_at` | date | yes | `2026-11-12` | for the "what changed since last cycle" feed |
+| `societal_goal_nl/_en` | text | no | | the societal development this enables (projectfiche field) |
+| `competent_authority` | string | no | `Gemeente Emmen` | *bevoegd gezag*: who grants permits (projectfiche field) |
+| `dependencies` | list | no | `g-emmen-deelnet` | ids of plans or grid upgrades this depends on |
+| `in_pmiek` | boolean | no | `false` | flag only: the pMIEK should not contain every plan |
 
 \* At least one of `mw_offtake` / `mw_feed_in` / `mw_flex` must be > 0.
 
@@ -73,8 +78,9 @@ Weights are a setting. **Validate them with TenneT.**
 | `title_nl` / `title_en` | string | `Nieuw 220 kV-station Wijster` |
 | `year_expected` | integer | `2029` |
 | `mw_added_offtake` / `mw_added_feed_in` | number | illustrative |
-| `certainty` | enum | `planned` · `under_construction` · `delayed` |
-| `delay_years` | number | `2` |
+| `pmiek_phase` | enum | `research_agenda` · `exploration` · `concrete` · `realisation`. These are the **official pMIEK phases** (RVO Handleiding pMIEK; see RESEARCH.md §8) |
+| `target_ip` | enum | `IP2026` · `IP2028` · `later`: which grid-operator investment plan it is in or targets (projectfiche field) |
+| `delay_years` | number | `2` (grid-side certainty: shows delayed upgrades) |
 | `source_document` | string | `Investeringsplan 2026` |
 
 ## 5. Station areas (derived, not submitted)
