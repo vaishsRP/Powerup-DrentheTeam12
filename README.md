@@ -1,7 +1,7 @@
 # Regionale maatregelkaart: Team 12, PowerUp Drenthe hackathon
 
-> **Status (Thu 12 Nov, 12:30):** planning phase. No app code yet. The concept is **proposed** and gets confirmed after the 14:00 pre-pitch.
-> Read this file first, then [`docs/PLAN.md`](docs/PLAN.md). Claude Code users: your Claude reads [`CLAUDE.md`](CLAUDE.md) automatically.
+> **Status (Thu 12 Nov, evening):** working static prototype. Customer journey, planning view and map layers are in place. Run `python -m http.server 8000` in the repo root and open http://localhost:8000.
+> Read this file first, then [`docs/PLAN.md`](docs/PLAN.md) and [`docs/CONTRACT.md`](docs/CONTRACT.md). Claude Code users: your Claude reads [`CLAUDE.md`](CLAUDE.md) automatically.
 
 ## The hackathon in 30 seconds
 
