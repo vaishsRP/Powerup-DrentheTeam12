@@ -23,6 +23,7 @@ APP.state = {
   lang: "nl",              // "nl" | "en"
   upgradeYears: {},        // overrides, e.g. { "veenoord-boerdijk": 2031 }  ← the delay ripple
   measures: [],            // e.g. [{ type: "battery", areaId: "veenoord", direction: "afname", mw: 10 }]
+  layers: { substations: true, cables: true, upgrades: true, plans: true }, // map layer toggles
   selectedAreaId: null,
   selectedPlanId: null,
   tab: "location",         // "location" | "plans" | "load" | "scenarios"
@@ -50,13 +51,18 @@ Rules:
 
 Model (docs/PLAN.md §6): load = base × (1+growth)^(year−2026) + Σ plan MW × maturity weight − measures; capacity = base capacity + upgrades in service. Weights: idea 0.25 · planned 0.5 · permit 0.75 · contracted 0.95.
 
-## 4. Data files (`data/app/`, built by `scripts/build_demo_data.py`)
+## 4. Data files (`data/app/` plus optional `data/real/`)
 
 | File | Shape | Real or illustrative |
 |---|---|---|
 | `areas.geojson` | Features with `properties: { id, name, station, base_offtake_mw, cap_offtake_mw, base_feed_in_mw, cap_feed_in_mw, growth_offtake, growth_feed_in, demo }` | Shapes: Voronoi around real TenneT stations, clipped to real Drenthe border. **MW illustrative.** |
 | `upgrades.json` | `[{ id, area_id, title_nl, title_en, year_desired, year_feasible, lead_years, kind, mw_added_offtake, mw_added_feed_in, source_document, years_verified }]` | **Years real** (Enexis IP2026, RESEARCH.md §9; `years_verified` = ✅). MW illustrative. |
 | `plans.json` | Plan cards per DATA-SCHEMA.md, plus `area_id` (pre-computed) | Illustrative ("Demo · fictieve gegevens") |
+| `data/drenthe-substations-osm.json` | Existing 110/220 kV substations (points) | Real (OpenStreetMap, ODbL) |
+| `data/real/tennet-cables.geojson` | Underground high-voltage cables (optional) | Real (TenneT assets) |
+| `data/real/osm-construction.geojson` | Substations under construction (optional) | Real (OpenStreetMap, ODbL) |
+
+`APP.data` = `{ areas, upgrades, plans, stations, cables, construction }`.
 
 Next: `scripts/fetch_capaciteitskaart.py` pulls the **real** capaciteitskaart supply areas (status, queue MW, "solved in year") into `data/real/`. When it works, the build script switches areas to those shapes. Keep the property names above so nothing else breaks.
 

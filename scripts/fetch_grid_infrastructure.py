@@ -7,10 +7,11 @@ Fetch REAL high-voltage grid infrastructure around Drenthe for the map's infrast
    Attribution: "© OpenStreetMap contributors" (ODbL).
 
 Usage (repo root):  pip install requests   then   python scripts/fetch_grid_infrastructure.py
-Output (raw; then run scripts/prepare_real_data.py to make the small files the map loads):
-  data/real/raw/tennet-lines.geojson      lines/cables touching Drenthe
-  data/real/raw/tennet-stations.geojson   stations touching Drenthe
-  data/real/raw/osm-construction.geojson  substations under construction in Drenthe
+Output:
+  data/real/raw/tennet-lines.geojson      lines/cables touching Drenthe (raw; scripts/prepare_real_data.py makes the small map files)
+  data/real/raw/tennet-stations.geojson   stations touching Drenthe (raw; same)
+  data/real/tennet-cables.geojson         underground high-voltage cables touching Drenthe (state.js and map.js pick this up)
+  data/real/osm-construction.geojson      substations under construction in Drenthe (state.js picks this up)
 Prints each layer's fields so you can check what came back.
 """
 import json
@@ -66,7 +67,31 @@ for lyr in meta.get("layers", []):
 for name, fs in (("tennet-lines", lines), ("tennet-stations", stations)):
     with open(f"data/real/raw/{name}.geojson", "w", encoding="utf-8") as fh:
         json.dump({"type": "FeatureCollection", "source": "TenneT (TenneT_Assets_Hoogspanning)", "features": fs}, fh, ensure_ascii=False)
-    print(f"saved data/real/{name}.geojson ({len(fs)})")
+    print(f"saved data/real/raw/{name}.geojson ({len(fs)})")
+
+KEEP = ("OBJECTID", "STATUS", "AANLEGJAAR", "NETSCHAKELID", "OBJECTTYPE", "SPANNINGSNIVEAU", "_layer", "Shape__Length")
+
+
+def rounded_geom(g):
+    if not g:
+        return None
+    if g.get("type") == "MultiLineString":
+        return {"type": "MultiLineString", "coordinates": [[[round(x, 5), round(y, 5)] for x, y in path] for path in g["coordinates"]]}
+    return g
+
+
+cables = [
+    {
+        "type": "Feature",
+        "properties": {k: f["properties"].get(k) for k in KEEP},
+        "geometry": rounded_geom(f.get("geometry")),
+    }
+    for f in lines
+    if f["properties"].get("_layer") == "Hoogspanning kabel (ondergronds)"
+]
+with open("data/real/tennet-cables.geojson", "w", encoding="utf-8") as fh:
+    json.dump({"type": "FeatureCollection", "source": "TenneT (TenneT_Assets_Hoogspanning) — underground high-voltage cables", "features": cables}, fh, ensure_ascii=False)
+print(f"saved data/real/tennet-cables.geojson ({len(cables)})")
 
 # ---------- 2. OSM substations under construction ----------
 q = """[out:json][timeout:60];
@@ -81,10 +106,13 @@ try:
         lon = e.get("lon") or e.get("center", {}).get("lon")
         if lat:
             fs.append({"type": "Feature", "properties": e.get("tags", {}), "geometry": {"type": "Point", "coordinates": [lon, lat]}})
-    with open("data/real/raw/osm-construction.geojson", "w", encoding="utf-8") as fh:
+    with open("data/real/osm-construction.geojson", "w", encoding="utf-8") as fh:
         json.dump({"type": "FeatureCollection", "source": "© OpenStreetMap contributors (ODbL)", "features": fs}, fh, ensure_ascii=False)
     print(f"\nOSM substations under construction: {len(fs)}")
     for f in fs:
         print("  ", f["properties"].get("name"), f["properties"].get("voltage"), f["geometry"]["coordinates"])
 except Exception as e:  # Overpass is sometimes busy; not essential
     print("\nOverpass failed (try again later):", e)
+    with open("data/real/osm-construction.geojson", "w", encoding="utf-8") as fh:
+        json.dump({"type": "FeatureCollection", "source": "© OpenStreetMap contributors (ODbL) — construction query failed", "features": []}, fh, ensure_ascii=False)
+    print("saved empty data/real/osm-construction.geojson")

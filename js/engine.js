@@ -92,11 +92,15 @@ const ENGINE = (() => {
   function connectionEstimate(planId, state) {
     const p = APP.data.plans.find((x) => x.id === planId);
     const dir = p.mw_feed_in > p.mw_offtake ? "teruglevering" : "afname";
+    const k = key(dir);
     for (let y = Math.max(p.year_needed, START); y <= END; y++) {
       const l = load(p.area_id, y, state, dir, { fullPlanId: p.id });
       if (l <= capacity(p.area_id, y, state, dir)) {
-        const blocking = upgradesIn(p.area_id).find((u) => upgradeYear(u, state) === y && y > p.year_needed);
-        const band = blocking ? (blocking.years_verified ? 1 : 2) : 0; // uncertainty range in years
+        const blocking = upgradesIn(p.area_id)
+          .filter((u) => (u[`mw_added_${k}`] || 0) > 0)
+          .find((u) => upgradeYear(u, state) === y && y > p.year_needed);
+        const latest = blocking ? Math.max(blocking.year_latest ?? y, y) : y;
+        const band = blocking ? latest - y : 0; // uncertainty range in years
         return { planId, direction: dir, earliest: y, latest: y + band, onTime: y <= p.year_needed, blockingUpgradeId: blocking?.id ?? null };
       }
     }
@@ -104,16 +108,18 @@ const ENGINE = (() => {
   }
 
   // Which pMIEK should a fix have been in? Investment plan (Jan Y-L) is based on the pMIEK of Feb (Y-L-1).
-  function decisionDeadline(areaId, state, dir = state.direction) {
+  function decisionDeadline(areaId, state, dir = state.direction, to = 2035) {
     let firstBottleneck = null;
-    for (let y = START; y <= END; y++) {
+    for (let y = START; y <= to; y++) {
       if (areaStatus(areaId, state, y, dir).status === "bottleneck") { firstBottleneck = y; break; }
     }
     if (firstBottleneck === null) return { needed: false };
-    const u = upgradesIn(areaId)[0];
-    const lead = u?.lead_years ?? 4; // default: station extension ≈ 4 yrs (Enexis IP2026)
-    const pmiekYear = firstBottleneck - lead - 1;
-    return { needed: true, firstBottleneck, leadYears: lead, investmentPlanYear: firstBottleneck - lead, pmiekYear, tooLate: pmiekYear < NEXT_PMIEK };
+    const k = key(dir);
+    const ups = upgradesIn(areaId).filter((u) => (u[`mw_added_${k}`] || 0) > 0);
+    const lead = ups.length ? Math.max(...ups.map((u) => u.lead_years || 0)) : 4; // default: station extension ≈ 4 yrs
+    const investmentPlanYear = firstBottleneck - lead;
+    const pmiekYear = investmentPlanYear - 1;
+    return { needed: true, firstBottleneck, leadYears: lead, investmentPlanYear, pmiekYear, tooLate: pmiekYear < NEXT_PMIEK };
   }
 
   // red/orange flags for delayed upgrades (the province's request, RESEARCH.md §9)
