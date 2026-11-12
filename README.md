@@ -29,6 +29,8 @@
 
 The organisers prefer a **working prototype** to slides.
 
+> ⚠️ **Direction update (Thu 12:56):** customer-facing first. One register, two views: (1) a **customer project planning map** ("Can I build here? When can I connect? What's my status and next step?") and (2) the **planning view** below, fed by the same data. See [`docs/PLAN.md` §0](docs/PLAN.md).
+
 ## Our idea (proposed)
 
 **A shared register of everyone's energy plans, a "one form", that tells the region where the grid will jam, which measure helps, and by when someone must decide.**

@@ -2,6 +2,27 @@
 
 > Last updated: Thu 12 Nov 2026, 12:30. Items marked **[DECIDE]** are open team decisions. Don't treat them as settled.
 
+## 0. ⚠️ Direction update (Thu 12:56): customer-facing first, planning underneath
+
+**Feedback relayed by a teammate:** the main issue is that grid customers "don't really know what is going on". **Customers** = organisations that want a grid connection or more capacity: project developers (solar, wind, batteries), companies and business parks, charging hubs, and municipalities (housing, schools). **The team's decision:** the customer side is the main priority (status, waiting time, external communication), but we still need the planning side.
+
+**New concept: one register, two views.**
+
+| | **Customer view: "project planning map"** (priority) | **Planning view** (regional table, grid operators) |
+|---|---|---|
+| Question | "Can I develop here? When can I connect? Where is my application, and what must I do next?" | "What's coming, where, when and how certain? What must be decided, by whom, by when?" |
+| Shows | Location check (grid status today, planned upgrades with real years, zoning flag), connection-date **estimate with uncertainty band**, application status and next steps / paperwork, "my projects" overview and timeline, **options to connect sooner** (time-block contract, cable pooling, battery, group contract) | Per station area and year: load vs capacity, delay flags, decision deadlines, measures map, change report |
+| Data | Own projects in detail; others only aggregated | All projects (confidential ones only for grid operators) |
+
+**Why this is stronger, not a detour:** a customer's project **is** a plan card. Customers get transparency (status, estimate, next step) **in return for** registering their plans early and keeping them current. That solves the planners' biggest problem: plans that are scattered, outdated or uncertain. **Customer transparency is the incentive that fills the planning register.**
+
+**Honest connection estimate** (to be grounded by research): the feasible in-service year of the grid upgrade that relieves the bottleneck at the customer's station (from the Enexis and TenneT IP2026 tables, RESEARCH.md §9–10), plus waiting-list position and an uncertainty band from upgrade delays. Shown as a range with "why" and "what would make it sooner".
+
+**Open [DECIDE]:**
+- Who exactly is the customer persona for the demo? Proposal: a solar/battery developer (Drenthe's feed-in is full) **and** a business-park company (offtake).
+- Zoning: a simple flag or illustrative layer (real zoning data is complex), or roadmap only?
+- Who said this: the challenge owner? Write it in §12.
+
 ## 1. Problem (one sentence)
 
 Everyone's energy plans already exist. But they sit in different documents, formats and area units (municipal borders vs grid areas), with unclear certainty. So nobody sees in time where the grid will jam, while expanding a substation takes years (≈7.5 years normally, ≈4 under the 2026 emergency measures; see RESEARCH.md).
@@ -202,6 +223,17 @@ Questions to ask:
 - [ ] Legend: 3 levels (mockup) vs the capaciteitskaart's 4 categories
 - [ ] Hosting: Vercel vs Netlify; shared database yes/no
 
-## 12. Pre-pitch feedback (fill in after 14:00)
+## 12. Feedback log
 
-_(empty)_
+**Thu 12:56 (relayed by a teammate; source to confirm):**
+- The core issue: grid **customers** don't know what's going on.
+- Wanted: a **project planning map** that helps customers understand **where and when their project can move forward and what to do next**.
+- Questions it should answer:
+  - Can I develop a project here? (zoning info, grid constraints, planned infrastructure upgrades)
+  - **When can I get connected?** (estimate)
+  - **What is my application status?** How far along is it, is anything still to do, any paperwork to hand in?
+  - An overview of all my projects (not detailed; just what's happening)
+  - A timeline
+- Team: the **customer status / waiting time / external communication** is the main priority; we still need the planning side. → See §0.
+
+**Pre-pitch (Thu 14:00):** _(fill in)_
