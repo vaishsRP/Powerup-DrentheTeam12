@@ -1,0 +1,187 @@
+{
+ "source": "OpenStreetMap contributors (ODbL), Overpass API query power=substation in Drenthe, retrieved 2026-11-12",
+ "stations": [
+  {
+   "name": "110 kV Assen Marsdijk",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 53.01365,
+   "lon": 6.58203,
+   "osm": "way/44659469"
+  },
+  {
+   "name": "110 kV Beilen",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.88818,
+   "lon": 6.51864,
+   "osm": "way/168762567"
+  },
+  {
+   "name": "110 kV Coevorden",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.65908,
+   "lon": 6.71031,
+   "osm": "way/167670574"
+  },
+  {
+   "name": "110 kV Coevorden Europark",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.64605,
+   "lon": 6.74321,
+   "osm": "way/167670576"
+  },
+  {
+   "name": "110 kV Emmen AKZO",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.77155,
+   "lon": 6.91103,
+   "osm": "way/167695556"
+  },
+  {
+   "name": "110 kV Emmen Bargermeer",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.762,
+   "lon": 6.92629,
+   "osm": "way/167695557"
+  },
+  {
+   "name": "110 kV Gasselte Kraanlanden",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110,
+    20,
+    10
+   ],
+   "lat": 52.98584,
+   "lon": 6.82292,
+   "osm": "way/168512790"
+  },
+  {
+   "name": "110 kV Hoogeveen",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.73734,
+   "lon": 6.47585,
+   "osm": "way/167670579"
+  },
+  {
+   "name": "110 kV Klazienaveen Zwet",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.73767,
+   "lon": 7.01093,
+   "osm": "way/245252111"
+  },
+  {
+   "name": "110 kV Meppel",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.68362,
+   "lon": 6.18962,
+   "osm": "way/87377580"
+  },
+  {
+   "name": "110 kV Musselkanaal Zandberg",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.91376,
+   "lon": 7.03094,
+   "osm": "way/167695565"
+  },
+  {
+   "name": "110 kV Norg",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 53.09138,
+   "lon": 6.43497,
+   "osm": "way/168762571"
+  },
+  {
+   "name": "110 kV Schoonebeek",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.68175,
+   "lon": 6.89407,
+   "osm": "way/720890885"
+  },
+  {
+   "name": "110 kV Veenoord",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.71506,
+   "lon": 6.84182,
+   "osm": "way/88074984"
+  },
+  {
+   "name": "110 kV Weerdinge",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.8075,
+   "lon": 6.90936,
+   "osm": "way/167676457"
+  },
+  {
+   "name": "110 kV Wijster Oosterscheveld",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 52.7931,
+   "lon": 6.50266,
+   "osm": "way/392325953"
+  },
+  {
+   "name": "110 kV Zeijerveen",
+   "operator": "TenneT",
+   "voltages_kv": [
+    110
+   ],
+   "lat": 53.00894,
+   "lon": 6.52485,
+   "osm": "way/1302686819"
+  },
+  {
+   "name": "220 kV Zeijerveen",
+   "operator": "TenneT",
+   "voltages_kv": [
+    220
+   ],
+   "lat": 53.00939,
+   "lon": 6.52416,
+   "osm": "way/1556866979"
+  }
+ ]
+}

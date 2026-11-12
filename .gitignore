@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+.vercel/
+.DS_Store
+Thumbs.db
+
+# Never commit the hackathon PDFs (TenneT deck is copyrighted; repo is public)
+*.pdf
