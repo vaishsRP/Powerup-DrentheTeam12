@@ -357,3 +357,22 @@ footer .in { max-width: 1240px; margin: 0 auto; }
 .estimate .big.est-pending { font-size: 26px !important; }
 .review-row { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; margin: 0 18px 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r); background: #fff; }
 .review-row .btn { justify-self: start; padding: 8px 12px; }
+
+/* customer: who acts next */
+.who { margin-top: 8px; font-size: var(--fs-sm); color: var(--muted); }
+.who b { color: var(--ink); }
+/* planner: decision per bottleneck */
+.dec { display: grid; grid-template-columns: 170px minmax(0,1fr); gap: 8px 14px; margin: 0; font-size: var(--fs-sm); }
+.dec dt { color: var(--muted); font-weight: 600; }
+.dec dd { margin: 0; }
+.tag { display: inline-block; padding: 2px 8px; margin: 2px 4px 2px 0; border-radius: 999px; background: #F9ECE7; color: #8A3B12; font-size: 12px; font-weight: 600; }
+.upg .tags { margin-top: 2px; }
+/* planner: load, capacity, unmet demand per year */
+.ytable { overflow-x: auto; margin-top: 12px; }
+.ytable table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ytable th, .ytable td { padding: 4px 6px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ytable th:first-child { text-align: left; font-weight: 600; color: var(--muted); }
+.ytable thead th { color: var(--muted); font-weight: 600; }
+.ytable tr.un td { color: #B4364A; }
+.ytable tr.short td { color: var(--shortage-tx); font-weight: 700; }
+@media (max-width: 700px) { .dec { grid-template-columns: 1fr; } }

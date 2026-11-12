@@ -61,8 +61,8 @@ const MAPKIT = (() => {
     }).addTo(map);
     // A popup near the edge may pan the map to fit; put the view back when it closes.
     let home = null;
-    map.on("moveend", () => { if (!map._popup?.isOpen()) home = { c: map.getCenter(), z: map.getZoom() }; });
-    map.on("popupclose", () => { if (home && map._containerId) map.setView(home.c, home.z, { animate: false }); });
+    map.on("moveend", () => { if (map._mapPane && map._containerId && !map._popup?.isOpen()) home = { c: map.getCenter(), z: map.getZoom() }; });
+    map.on("popupclose", () => { if (home && map._mapPane && map._containerId) map.setView(home.c, home.z, { animate: false }); });
     map.createPane("areas").style.zIndex = 400;
     map.createPane("veil").style.zIndex = 410;
     map.createPane("lines").style.zIndex = 430;

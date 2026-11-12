@@ -10,6 +10,15 @@ const pill = (cls, text) => `<span class="pill ${cls}">${text}</span>`;
 // a new request shows no date until an expert of the grid operator has confirmed the estimate
 const pending = (o) => o?.review === "pending";
 const estText = (o, r) => (pending(o) ? t("in_review") : ENGINE.estRange(r));
+// the grid operator at the project's location (capaciteitskaart), and who acts next on a customer's project
+const operatorFor = (o) => (ENGINE.realAreaAt(o.lat, o.lon)?.properties.operator || "").split(",")[0].trim() || t("netbeheerder");
+const nextOwner = (o) => {
+  const op = operatorFor(o);
+  if (pending(o)) return { who: t("who_op", { op }), text: t("next_review") };
+  if (o.maturity === "permit") return { who: t("who_op_you", { op }), text: t("next_permit") };
+  if (o.maturity === "contracted") return { who: t("who_op", { op }), text: t("next_contracted") };
+  return { who: t("who_you"), text: t("next_" + o.maturity) };
+};
 const estPill = (o, r) => (pending(o) ? pill("s-neutral", t("in_review")) : pill(STATUS_CLASS[r?.status] || "s-neutral", t(r?.status || "proceeds")));
 const stationFor = (areaId) => STORE.data.stations.find((s) => s.name.replace(/^\d+ kV /, "").toLowerCase().replace(/ /g, "-") === areaId);
 function meter(ratio) { // the dot meter: 10 dots, filled share = use of capacity, red dots = over capacity
@@ -97,9 +106,9 @@ const ProjectsPage = {
       return `<a class="row-item" href="#/klant/project/${o.id}">
         <span class="bar ${pending(o) ? "s-neutral" : STATUS_CLASS[r?.status] || "s-neutral"}"></span>
         <div><h3>${icon(TYPE_ICON[o.category] || "zap")} ${esc(title(o))}</h3>
-          <div class="row-meta"><span>${icon("map-pin", 14)} ${esc(ENGINE.area(o.area_id)?.name || "")}</span><span>${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()}</span>
-          ${last ? `<span>${icon("clock", 14)} ${last.date}</span>` : ""}</div>
-          <p class="small" style="margin-top:6px">${t("next_step")}: ${t("next_" + o.maturity)}</p></div>
+          <div class="row-meta"><span>${icon("map-pin", 14)} ${esc(o.municipality || ENGINE.area(o.area_id)?.name || "")}</span><span>${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()}</span>
+          <span>${icon("calendar-clock", 14)} ${t("from_year", { y: o.year_needed })}</span>${last ? `<span>${icon("clock", 14)} ${last.date}</span>` : ""}</div>
+          <p class="small" style="margin-top:6px">${t("next_step")} (<b>${nextOwner(o).who}</b>): ${nextOwner(o).text}</p></div>
         <div class="row-end"><div class="small muted">${t("expected")}</div><div class="est ${pending(o) ? "est-pending" : ""}">${estText(o, r)}</div>${estPill(o, r)}</div>
       </a>`;
     }).join("");
@@ -144,20 +153,22 @@ const ProjectPage = {
       <div class="split">
         <div>
           <h1>${icon(TYPE_ICON[o.category] || "zap", 26)} ${esc(title(o))}</h1>
-          <div class="row-meta" style="margin-top:8px"><span>${ENGINE.oMW(o)} MW ${t(dir).toLowerCase()}</span><span>${icon("map-pin", 14)} ${esc(o.municipality || ENGINE.area(o.area_id)?.name || "")}</span><span>${t("m_" + o.maturity)}</span></div>
+          <div class="row-meta" style="margin-top:8px">${estPill(o, r)}<span>${ENGINE.oMW(o)} MW ${t(dir).toLowerCase()}</span><span>${icon("map-pin", 14)} ${esc(o.municipality || ENGINE.area(o.area_id)?.name || "")}</span><span>${t("m_" + o.maturity)}</span></div>
           <div class="panel" style="margin-top:20px">
             <div class="estimate"><div class="big ${pending(o) ? "est-pending" : ""}">${estText(o, r)}</div>
               <div><div class="muted">${t("expected")}</div>${estPill(o, r)}</div></div>
             ${pending(o) ? `<p class="why" style="margin-top:14px">${t("review_wait")}</p>` : ""}
             ${w && !pending(o) ? `<p class="why" style="margin-top:14px">${t("waiting_for")}: <b>${title(w)}</b>, ${t(wStatus).toLowerCase()}. ${esc(w[`risk_${lang()}`] || "")}</p>` : ""}
             <div class="facts">
-              <div><b>${esc(ENGINE.area(o.area_id)?.name || "–")}</b><span>${t("area")}</span></div>
+              <div><b>${esc([o.municipality, ENGINE.area(o.area_id)?.name].filter(Boolean).join(" · ") || "–")}</b><span>${t("f_location")} (${t("area").toLowerCase()})</span></div>
+              <div><b>${esc(operatorFor(o))}</b><span>${t("grid_owner")}</span></div>
+              <div><b>${t("from_year", { y: o.year_needed })}</b><span>${t("pref_start")}</span></div>
               <div><b>${t("pr" + o.priority)}</b><span>${t("prio_note")}</span></div>
               ${ra ? `<div><b>${pill(CODE_CLASS[code], t("cap" + code))}</b><span>${t("location_status")}: ${esc(ra.name)}</span></div>
               <div><b>${ra[`queue_${dir}_mw`] != null ? `${(+ra[`queue_${dir}_mw`]).toFixed(1)} MW` : "–"}</b><span>${t("queue")}, ${ra[`requests_${dir}`] ?? 0} ${t("requests")}</span></div>` : ""}
             </div>
           </div>
-          <div class="panel panel-grey"><h2>${icon("list-checks")} ${t("next_step")}</h2><p>${t("next_" + o.maturity)}</p></div>
+          <div class="panel panel-grey"><h2>${icon("list-checks")} ${t("next_step")}</h2><p>${nextOwner(o).text}</p><p class="who">${t("who")}: <b>${nextOwner(o).who}</b></p></div>
           ${pending(o) ? "" : `<h2 class="section-title">${icon("zap")} ${t("sooner")}</h2>
           <p class="small muted">${t("sooner_lead")}</p>
           <div class="panel" style="margin-top:10px;padding-top:6px;padding-bottom:6px">${opts}</div>`}
@@ -195,7 +206,7 @@ const ProjectPage = {
     }
     MAPKIT.pin(g, o.lat, o.lon, `<b>${esc(title(o))}</b><br>${ENGINE.oMW(o)} MW`);
     // the map can't be panned, so leave room for the labels on both sides
-    map.fitBounds(L.latLngBounds(pts).pad(0.15), { maxZoom: 12, paddingTopLeft: [150, 30], paddingBottomRight: [180, 30] });
+    map.fitBounds(L.latLngBounds(pts).pad(0.15), { maxZoom: 11, paddingTopLeft: [232, 50], paddingBottomRight: [222, 50] });
     return () => map.remove();
   },
 };
@@ -334,17 +345,39 @@ const OverviewPage = {
         <div><b>${bn} / ${ids.length}</b><span>${t("k_bottlenecks")} ${s.year}</span></div>
         <div><b class="${late ? "bad" : ""}">${late}</b><span>${t("k_delayed")}</span></div>
         <div><b>${Math.round(st.mw).toLocaleString(lang() === "nl" ? "nl-NL" : "en-GB")}</b><span>${t("k_queue")}</span></div>
-        <div><b class="${firstDec?.late ? "bad" : ""}">${firstDec ? (firstDec.late ? t("too_late") : `${t("pmiek")} ${firstDec.pmiek}`) : "–"}</b><span>${t("k_first")}</span></div>
+        <div><b class="${firstDec?.late ? "bad" : ""}">${firstDec ? (firstDec.late ? t("too_late") : `${t("pmiek")} ${firstDec.pmiek}`) : "–"}</b><span>${t("k_first")} (${t("model_short")})</span></div>
       </div>
       ${this.reviews(sim)}
       <div class="side-h"><h2>${t("attention")}</h2><p class="small muted">${t("attention_lead")}</p></div>
       ${rows.filter((r) => s.showAll || r.d || r.now.status !== "room").map((r) => `<a class="area-row" href="#/planner/gebied/${r.id}">
         <h3>${esc(ENGINE.area(r.id).name)}</h3>${pill(STATUS_CLASS[r.now.status], t(r.now.status))}
         <div class="sub">${meter(r.now.ratio)}<span>${r.d ? `${t("first_bn")} ${r.d.first}` : t("none_bn")}</span>
-        ${r.d ? `<span style="color:${r.d.late ? "var(--shortage-tx)" : "inherit"}">${r.d.late ? t("too_late") : `${t("pmiek")} ${r.d.pmiek}`}</span>` : ""}</div></a>`).join("")}
+        ${r.d ? `<span style="color:${r.d.late ? "var(--shortage-tx)" : "inherit"}">${r.d.late ? t("too_late") : `${t("pmiek")} ${r.d.pmiek} (${t("model_short")})`}</span>` : ""}
+        ${r.now.unmet >= 0.5 ? `<span>${Math.round(r.now.unmet)} MW ${t("unmet_short")} ${s.year}</span>` : ""}</div></a>`).join("")}
       ${rows.some((r) => !(r.d || r.now.status !== "room")) ? `<button class="show-all" id="show-all">${s.showAll ? t("show_less") : t("show_all", { n: rows.length })}</button>` : ""}`;
   },
 };
+
+// what holds a grid upgrade up, read from its source fields (Enexis IP2026 notes); nothing is invented
+const noFlag = (s) => String(s || "").replace(/\s*🔎/g, "");
+function blockers(u) {
+  if (u.is_new) return [];
+  const txt = `${u.space_nl || ""} ${u.risk_nl || ""}`.toLowerCase(), out = [];
+  if (u.phase === "study" || /locatie nog/.test(txt)) out.push("blk_location");
+  if (/procedure|bestemmingsplan|vergunning|raad van state/.test(txt)) out.push("blk_permit");
+  if (/aannemer/.test(txt)) out.push("blk_contractors");
+  if (/\//.test(u.operator || "")) out.push("blk_coord");
+  return out;
+}
+function nextAction(ups) {
+  const u = ups[0];
+  if (!u) return { owner: t("own_pmiek"), act: t("act_propose") };
+  const owner = (u.operator || t("netbeheerder")).replace("/", " + ");
+  if (u.is_new) return { owner, act: t("act_propose") };
+  if (u.phase === "study") return { owner, act: t("act_study") };
+  if (u.infra_status === "under_construction") return { owner, act: t("act_build") };
+  return { owner, act: t("act_plan") };
+}
 
 // =====================================================================================  PLANNER: area detail
 const AreaPage = {
@@ -357,10 +390,11 @@ const AreaPage = {
       return `<button data-y="${y}" class="${y === s.year ? "on" : ""}" style="background:${MAPKIT.COL[st]};opacity:${st === "room" ? .85 : 1}">${y}</button>`;
     }).join("");
     const ups = ENGINE.upgradesIn(id, s.applied).map((u) => {
-      const y = ENGINE.upYear(u, s.applied), dl = y - u.year_desired;
+      const y = ENGINE.upYear(u, s.applied), dl = y - u.year_desired, bl = blockers(u);
       const affected = ENGINE.orders().filter((o) => o.area_id === id && ENGINE.oDir(o) === s.dir && o.year_needed <= y);
       return `<div class="upg"><b>${title(u)}</b><span class="delay ${dl > 0 ? "" : "ok"}">${dl > 0 ? t("delay_y", { n: dl }) : t("on_time_u")}</span>
-        <div class="sub">${t(ENGINE.upStatus(u, s.applied, 2026))}, ${t("desired")} ${u.year_desired}, ${t("feasible")} ${y}. ${esc(u[`space_${lang()}`] || "")}</div>
+        <div class="sub">${t(ENGINE.upStatus(u, s.applied, 2026))}, ${t("desired")} ${u.year_desired}, ${t("feasible")} ${y}. ${esc(noFlag(u[`space_${lang()}`]))} ${esc(u[`risk_${lang()}`] || "")}</div>
+        ${bl.length ? `<div class="sub tags">${bl.map((k) => `<span class="tag">${t(k)}</span>`).join("")}</div>` : ""}
         ${affected.length ? `<div class="sub">${t("affected_projects")}: ${affected.slice(0, 3).map((o) => esc(title(o))).join(", ")}</div>` : ""}</div>`;
     }).join("") || `<p class="muted">–</p>`;
     const queue = ENGINE.orders().filter((o) => o.area_id === id).sort((a, b) => a.priority - b.priority || a.request_seq - b.request_seq).map((o) => {
@@ -388,11 +422,12 @@ const AreaPage = {
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 style="margin:0">${s.year}: ${Math.round(cur.load)} / ${Math.round(cur.cap)} MW</h2>${meter(cur.ratio)}</div>
             <div class="yearstrip">${strip}</div>
             <div class="chart-box"><canvas id="chart"></canvas></div>
+            ${this.table(sim, id)}
+            <p class="small muted" style="margin-top:8px">${t("unmet_note")}</p>
           </div>
           <div class="panel">
             <h2>${icon("calendar-clock")} ${t("decision")}</h2>
-            ${d ? `<div class="chain ${d.late ? "" : ""}"><div class="${d.late ? "late" : ""}"><span>${t("pmiek")}</span><b>${d.pmiek}</b></div><div class="${d.late ? "late" : ""}"><span>${t("ip")}</span><b>${d.ip}</b></div><div><span>${t("in_service")}</span><b>${d.first}</b></div></div>
-              <p style="margin-top:12px">${d.late ? `<b style="color:var(--shortage-tx)">${t("late_measures")}</b>` : `${t("decide_by")} ${d.pmiek}.`}</p>` : `<p class="muted">${t("none_bn")}</p>`}
+            ${d ? this.decision(id, sim, d) : `<p class="muted">${t("none_bn")}</p>`}
           </div>
           <div class="panel"><h2>${icon("route")} ${t("upgrades")}</h2>${ups}</div>
         </div>
@@ -403,6 +438,36 @@ const AreaPage = {
         </div>
       </div></div>`;
   },
+  // the decision a bottleneck needs: shortfall, who waits on it, who acts next, when, and what holds it up
+  decision(id, sim, d) {
+    const s = STORE.state, ups = ENGINE.upgradesIn(id, s.applied);
+    // the year with the biggest shortfall, split into what is already connected and what doesn't fit yet
+    const peak = Array.from({ length: ENGINE.END - ENGINE.START + 1 }, (_, i) => ENGINE.START + i)
+      .reduce((best, y) => { const a = ENGINE.areaStatus(sim, id, s.dir, y); return !best || a.shortfall > best.a.shortfall ? { y, a } : best; }, null);
+    const at = peak.a, nextPmiek = Math.max(d.pmiek, 2027); // late: the next pMIEK round is the first decision moment left
+    const next = nextAction(ups);
+    const waiting = ENGINE.orders().filter((o) => o.area_id === id && o.category !== "battery" && ENGINE.oDir(o) === s.dir && (sim.res[o.id]?.year ?? 9999) > o.year_needed);
+    const bl = [...new Set(ups.flatMap(blockers))];
+    return `<dl class="dec">
+        <dt>${t("dec_shortfall", { y: peak.y })}</dt><dd><b>${Math.round(at.shortfall)} MW</b> <span class="muted">${t("dec_split", { f: Math.round(at.unmetFormal), e: Math.round(at.unmetEarly) })}</span></dd>
+        <dt>${t("dec_projects")}</dt><dd>${waiting.length ? waiting.map((o) => `${esc(title(o))} <span class="muted">(${ENGINE.oMW(o)} MW, ${t(ENGINE.isFormal(o) ? "formal" : "early")}, ${t("from_year", { y: o.year_needed })} → ${ENGINE.estRange(sim.res[o.id])})</span>`).join("<br>") : "–"}</dd>
+        <dt>${t("dec_next")}</dt><dd>${next.act}${d.late ? `<br><span style="color:var(--shortage-tx)">${t("act_measures")}</span>` : ""}</dd>
+        <dt>${t("dec_owner")}</dt><dd>${esc(next.owner)}</dd>
+        <dt>${t("dec_due")}</dt><dd>${d.late ? `<b style="color:var(--shortage-tx)">${t("too_late")}</b>. ${t("next_moment")}: <b>${t("pmiek")} ${nextPmiek}</b>` : `<b>${t("pmiek")} ${d.pmiek}</b>`} ${pill("s-neutral", t("model_est"))}</dd>
+        <dt>${t("dec_block")}</dt><dd>${!ups.length ? t("no_upg") : bl.length ? bl.map((k) => `<span class="tag">${t(k)}</span>`).join(" ") : t("blk_none_known")}</dd>
+      </dl>
+      ${d.late ? "" : `<div class="chain" style="margin-top:14px"><div><span>${t("pmiek")}</span><b>${d.pmiek}</b></div><div><span>${t("ip")}</span><b>${d.ip}</b></div><div><span>${t("in_service")}</span><b>${d.first}</b></div></div>`}
+      <p class="small muted" style="margin-top:8px">${t("model_est_note")}</p>`;
+  },
+  // load, capacity and unmet demand side by side for every year
+  table(sim, id) {
+    const ser = ENGINE.series(sim, id, STORE.state.dir), r = (v) => Math.round(v);
+    const row = (label, arr, cls = "") => `<tr class="${cls}"><th>${label}</th>${arr.map((v) => `<td>${r(v) || (cls ? "–" : 0)}</td>`).join("")}</tr>`;
+    return `<div class="ytable"><table><thead><tr><th>MW</th>${ser.years.map((y) => `<th>${y}</th>`).join("")}</tr></thead><tbody>
+      ${row(t("c_load"), ser.load)}${row(t("capacity"), ser.cap)}
+      ${row(t("c_unmet_f"), ser.unmetFormal, "un")}${row(t("c_unmet_e"), ser.unmetEarly, "un")}${row(t("c_short"), ser.shortfall, "short")}
+      </tbody></table></div>`;
+  },
   mount(root, id) {
     if (!ENGINE.area(id)) return;
     const s = STORE.state, sim = ENGINE.simulate(s.applied), ser = ENGINE.series(sim, id, s.dir);
@@ -410,13 +475,15 @@ const AreaPage = {
     root.querySelectorAll("#a-dir button").forEach((b) => (b.onclick = () => { STORE.state.dir = b.dataset.d; route(); }));
     root.querySelector("#to-sim").onclick = () => { STORE.state.simArea = id; };
     const chart = new Chart(root.querySelector("#chart"), {
-      type: "line",
+      type: "bar",
       data: { labels: ser.years, datasets: [
-        { label: t("peak"), data: ser.load.map((v) => Math.round(v)), borderColor: "#0A5353", backgroundColor: "rgba(57,162,74,.12)", fill: true, tension: 0.25, pointRadius: 3, pointBackgroundColor: "#0A5353" },
-        { label: t("capacity"), data: ser.cap.map((v) => Math.round(v)), borderColor: "#E25A6B", borderDash: [6, 4], stepped: true, pointRadius: 0, borderWidth: 2 },
+        { type: "line", label: t("capacity"), data: ser.cap.map((v) => Math.round(v)), borderColor: "#022A2C", borderDash: [6, 4], stepped: "middle", pointRadius: 0, borderWidth: 2, order: 0 },
+        { label: t("c_load"), data: ser.load.map((v) => Math.round(v)), backgroundColor: "#0A5353", stack: "d", order: 1 },
+        { label: t("c_unmet_f"), data: ser.unmetFormal.map((v) => Math.round(v)), backgroundColor: "#E25A6B", stack: "d", order: 1 },
+        { label: t("c_unmet_e"), data: ser.unmetEarly.map((v) => Math.round(v)), backgroundColor: "rgba(226,90,107,.35)", stack: "d", order: 1 },
       ] },
       options: { maintainAspectRatio: false, animation: false, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { family: "'Plus Jakarta Sans', Arial" } } } },
-        scales: { y: { title: { display: true, text: "MW" }, beginAtZero: true, grid: { color: "#E6EEE5" } }, x: { grid: { display: false } } } },
+        scales: { y: { title: { display: true, text: "MW" }, beginAtZero: true, stacked: true, grid: { color: "#E6EEE5" } }, x: { stacked: true, grid: { display: false } } } },
     });
     const map = MAPKIT.create(root.querySelector("#map"), { scroll: false }), g = L.layerGroup().addTo(map);
     const f = STORE.data.areas.features.find((x) => x.properties.id === id);

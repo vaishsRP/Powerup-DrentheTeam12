@@ -20,6 +20,8 @@ const ENGINE = (() => {
   const upYear = (u, dec) => (isOff(u, dec) ? NEVER : dec.upgradeYears[u.id] ?? u.year_feasible);
   const upgrades = (dec) => D().upgrades.concat(dec?.newUpgrades || []).filter((u) => !isOff(u, dec));
   const upgradesIn = (aid, dec) => upgrades(dec).filter((u) => u.area_id === aid);
+  // a formal connection request (permit or contract stage, or submitted through NetWijzer) vs an early-stage plan
+  const isFormal = (o) => ["permit", "contracted"].includes(o.maturity) || String(o.id).startsWith("u-");
   const base = (aid, d, y) => { const a = area(aid); return a[`base_${key(d)}_mw`] * Math.pow(1 + a[`growth_${key(d)}`], y - START); };
   const capacity = (aid, d, y, dec) => area(aid)[`cap_${key(d)}_mw`] +
     upgradesIn(aid, dec).filter((u) => upYear(u, dec) <= y).reduce((s, u) => s + u[`mw_added_${key(d)}`], 0);
@@ -60,7 +62,7 @@ const ENGINE = (() => {
 
   // ---------- queue simulation ----------
   function simulate(dec, opts = {}) {
-    const used = {}, relief = {}, res = {};
+    const used = {}, relief = {}, res = {}, unmetF = {}, unmetE = {};
     const slot = (o, aid, d) => (o[`${aid}|${d}`] ??= Array(END - START + 1).fill(0));
     const list = ORDERS.concat(dec.batteries || [], opts.extra ? [opts.extra] : [])
       .filter((o) => !(dec.cancelled || []).includes(o.id) && o.area_id)
@@ -78,23 +80,33 @@ const ENGINE = (() => {
       for (let y = y0; y <= END; y++) {
         if (capacity(o.area_id, d, y, dec) + r[y - START] - base(o.area_id, d, y) - u[y - START] >= mw) { got = y; break; }
       }
+      // demand that has asked for a year but does not fit yet: counted per year until it connects
+      const un = slot(isFormal(o) ? unmetF : unmetE, o.area_id, d);
+      for (let y = y0; y < (got ?? END + 1); y++) un[y - START] += mw;
       if (got === null) { res[o.id] = { year: null, status: "not_possible", wait: null }; continue; }
       for (let y = got; y <= END; y++) u[y - START] += mw;
       const wait = got > y0 ? upgradesIn(o.area_id, dec).find((x) => upYear(x, dec) === got) || null : null;
       res[o.id] = { year: got, status: got === y0 ? "proceeds" : "delayed", wait };
     }
-    return { res, used, relief, dec };
+    return { res, used, relief, unmetF, unmetE, dec };
   }
+  // status follows demand (connected load + requests that don't fit yet), so a year never looks free
+  // just because the projects that wanted it were pushed to a later year
   function areaStatus(sim, aid, d, y) {
-    const i = y - START;
-    const load = base(aid, d, y) + (sim.used[`${aid}|${d}`]?.[i] || 0) - (sim.relief[`${aid}|${d}`]?.[i] || 0);
-    const cap = capacity(aid, d, y, sim.dec), ratio = load / cap;
-    return { load, cap, ratio, status: ratio < 0.8 ? "room" : ratio <= 1 ? "limited" : "bottleneck" };
+    const i = y - START, k = `${aid}|${d}`;
+    const load = base(aid, d, y) + (sim.used[k]?.[i] || 0) - (sim.relief[k]?.[i] || 0);
+    const unmetFormal = sim.unmetF?.[k]?.[i] || 0, unmetEarly = sim.unmetE?.[k]?.[i] || 0, unmet = unmetFormal + unmetEarly;
+    const cap = capacity(aid, d, y, sim.dec), demand = load + unmet, ratio = demand / cap;
+    return { load, cap, unmet, unmetFormal, unmetEarly, demand, shortfall: Math.max(0, demand - cap), ratio,
+      status: ratio < 0.8 ? "room" : ratio <= 1 ? "limited" : "bottleneck" };
   }
   function series(sim, aid, d) {
-    const years = [], load = [], cap = [];
-    for (let y = START; y <= END; y++) { const s = areaStatus(sim, aid, d, y); years.push(y); load.push(s.load); cap.push(s.cap); }
-    return { years, load, cap };
+    const out = { years: [], load: [], cap: [], unmetFormal: [], unmetEarly: [], shortfall: [] };
+    for (let y = START; y <= END; y++) {
+      const s = areaStatus(sim, aid, d, y);
+      out.years.push(y); out.load.push(s.load); out.cap.push(s.cap); out.unmetFormal.push(s.unmetFormal); out.unmetEarly.push(s.unmetEarly); out.shortfall.push(s.shortfall);
+    }
+    return out;
   }
   function firstBottleneck(sim, aid, d) {
     for (let y = START; y <= END; y++) if (areaStatus(sim, aid, d, y).status === "bottleneck") return y;
@@ -163,5 +175,5 @@ const ENGINE = (() => {
   }
 
   return { START, END, MEASURE, init, orders, addOrder, area, areaAt, realAreaAt, inDrenthe, inGeom, simulate, areaStatus, series, firstBottleneck,
-    deadline, estRange, upYear, upStatus, atRisk, upgrades, upgradesIn, findUpgrade, confirmOrder, oDir, oMW, diff, ckCode, realStats, centroid };
+    deadline, isFormal, estRange, upYear, upStatus, atRisk, upgrades, upgradesIn, findUpgrade, confirmOrder, oDir, oMW, diff, ckCode, realStats, centroid };
 })();

@@ -59,6 +59,19 @@ const TEXT = {
     // planner
     ov_title: "Overzicht Drenthe", view_today: "Vandaag", view_today_hint: "capaciteitskaart", view_proj: "Projectie", view_proj_hint: "register",
     no_data: "Geen gegevens op de capaciteitskaart", // NL?
+    // teammate feedback (Thu night): customer facts + next-step owner, unmet demand, decision per bottleneck
+    f_location: "Locatie", grid_owner: "Netbeheerder", pref_start: "Gewenste start", from_year: "vanaf {y}", who: "Wie", who_you: "U", // NL?
+    who_op: "{op} (netbeheerder)", who_op_you: "{op} (netbeheerder), daarna u", netbeheerder: "netbeheerder", // NL?
+    next_review: "Een expert van de netbeheerder beoordeelt uw aanvraag en stuurt u een eerste inschatting.", // NL?
+    c_load: "Belasting (aangesloten)", c_unmet_f: "Niet ingepast: formele aanvragen", c_unmet_e: "Niet ingepast: plannen in vroeg stadium", c_short: "Tekort", // NL?
+    unmet_short: "niet ingepast in", formal: "formele aanvraag", early: "plan in vroeg stadium", // NL?
+    unmet_note: "Niet ingepast = vraag die voor dat jaar is aangevraagd maar nog niet past. Die telt mee in de status, zodat een jaar niet vrij lijkt omdat projecten naar later zijn geschoven.", // NL?
+    dec_shortfall: "Grootste tekort ({y})", dec_split: "niet ingepast: {f} MW formele aanvragen, {e} MW plannen", dec_projects: "Projecten die hierop wachten", // NL?
+    dec_next: "Volgende actie", next_moment: "Eerstvolgende besluitmoment", dec_owner: "Eigenaar", dec_due: "Besluit uiterlijk", dec_block: "Wat houdt het op", // NL?
+    model_est: "Modelschatting", model_short: "model", model_est_note: "Datums zijn een modelschatting tot er een bevestigde besluitdatum is.", // NL?
+    blk_location: "Locatie / grond nog niet rond", blk_permit: "Vergunning / ruimtelijke procedure", blk_contractors: "Tekort aan aannemers", blk_coord: "Afstemming Enexis en TenneT", blk_none_known: "Geen blokkade bekend in de bronnen", // NL?
+    own_pmiek: "Provincie en netbeheerder (pMIEK)", act_propose: "Netuitbreiding voorstellen voor het pMIEK", act_study: "Locatie en ontwerp vastleggen, investering opnemen in het investeringsplan", // NL?
+    act_build: "Bouw afronden en vertraging op tijd melden", act_plan: "Vergunning en planning bevestigen", act_measures: "Tot dan: maatregelen (batterij, flexibel contract, cable pooling)", no_upg: "Nog geen netuitbreiding gepland in dit gebied", // NL?
     // new request review + simulator decisions (Thu evening)
     review_title: "Wat gebeurt er na het indienen?", review_p: "Een expert van de netbeheerder beoordeelt uw aanvraag. Daarna krijgt u een eerste inschatting van de aansluitdatum, met de reden.", // NL?
     review_today: "Vandaag op de capaciteitskaart", in_review: "In beoordeling", // NL?
@@ -158,6 +171,18 @@ const TEXT = {
     first_estimate: "First estimate",
     ov_title: "Drenthe overview", view_today: "Today", view_today_hint: "capacity map", view_proj: "Projection", view_proj_hint: "register",
     no_data: "No data on the capacity map",
+    f_location: "Location", grid_owner: "Grid operator", pref_start: "Preferred start", from_year: "from {y}", who: "Who", who_you: "You",
+    who_op: "{op} (grid operator)", who_op_you: "{op} (grid operator), then you", netbeheerder: "grid operator",
+    next_review: "An expert at the grid operator reviews your request and sends you a first estimate.",
+    c_load: "Load (connected)", c_unmet_f: "Not fitted: formal requests", c_unmet_e: "Not fitted: early-stage plans", c_short: "Shortfall",
+    unmet_short: "not fitted in", formal: "formal request", early: "early-stage plan",
+    unmet_note: "Not fitted = demand requested for that year that doesn't fit yet. It counts in the status, so a year never looks free because projects were pushed to later.",
+    dec_shortfall: "Biggest shortfall ({y})", dec_split: "not fitted: {f} MW formal requests, {e} MW plans", dec_projects: "Projects waiting on this",
+    dec_next: "Next action", next_moment: "Next decision moment", dec_owner: "Owner", dec_due: "Decision due", dec_block: "What is holding it up",
+    model_est: "Model estimate", model_short: "model", model_est_note: "Dates are a model estimate until a decision date is confirmed.",
+    blk_location: "Location / land not settled", blk_permit: "Permit / spatial procedure", blk_contractors: "Shortage of contractors", blk_coord: "Coordination Enexis and TenneT", blk_none_known: "No blocker known in the sources",
+    own_pmiek: "Province and grid operator (pMIEK)", act_propose: "Propose a grid upgrade for the pMIEK", act_study: "Fix location and design, put the investment in the investment plan",
+    act_build: "Finish construction and report delays early", act_plan: "Confirm permit and schedule", act_measures: "Until then: measures (battery, flexible contract, cable pooling)", no_upg: "No grid upgrade planned in this area yet",
     review_title: "What happens after you submit?", review_p: "An expert at the grid operator reviews your request. You then get a first estimate of the connection date, with the reason.",
     review_today: "Today on the capacity map", in_review: "Under review",
     review_wait: "An expert at the grid operator is checking your request. Once the estimate is confirmed, you'll see the expected connection date and the reason here.",
