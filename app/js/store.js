@@ -9,14 +9,15 @@ const STORE = {
     applied: { upgradeYears: {}, cancelled: [], batteries: [], newUpgrades: [], removedUpgrades: [] }, // decisions in force
     draft: { upgradeYears: {}, cancelled: [], batteries: [], newUpgrades: [], removedUpgrades: [] },   // simulator what-if
     userOrders: [], events: {}, simArea: null,
+    cancelReqs: [], // customer requests to withdraw, waiting for the planner
   },
   listeners: [],
   on(fn) { this.listeners.push(fn); },
   set(patch) { Object.assign(this.state, patch); this.save(); this.listeners.forEach((f) => f()); },
   save() {
     try {
-      const { lang, applied, userOrders, events } = this.state;
-      localStorage.setItem(SAVE_KEY, JSON.stringify({ lang, applied, userOrders, events: serialEvents(events) }));
+      const { lang, applied, userOrders, events, cancelReqs } = this.state;
+      localStorage.setItem(SAVE_KEY, JSON.stringify({ lang, applied, userOrders, events: serialEvents(events), cancelReqs }));
     } catch (_) { /* storage unavailable: keep in memory */ }
   },
   reset() { try { localStorage.removeItem(SAVE_KEY); } catch (_) {} location.hash = "#/"; location.reload(); },
@@ -50,7 +51,7 @@ async function loadData() {
 
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
-    if (saved) Object.assign(STORE.state, { lang: saved.lang || "nl", applied: saved.applied || STORE.state.applied, userOrders: saved.userOrders || [], events: saved.events || {} });
+    if (saved) Object.assign(STORE.state, { lang: saved.lang || "nl", applied: saved.applied || STORE.state.applied, userOrders: saved.userOrders || [], events: saved.events || {}, cancelReqs: saved.cancelReqs || [] });
   } catch (_) { /* ignore */ }
   STORE.state.applied.newUpgrades ??= []; STORE.state.applied.removedUpgrades ??= [];
   STORE.state.draft = JSON.parse(JSON.stringify(STORE.state.applied));
@@ -86,7 +87,7 @@ function reasonText(r) {
   const u = r.id && ENGINE.findUpgrade(r.id), name = u ? u[`title_${STORE.state.lang}`] : "";
   if (r.type === "upg") return t("because_upg", { u: name, y: r.year });
   if (r.type === "upg_off") return t("because_upg_off", { u: name });
-  return t({ bat: "because_bat", cancel: "because_cancel", prio: "because_prio" }[r.type]);
+  return t({ bat: "because_bat", cancel: "because_cancel", prio: "because_prio", withdrawn: "because_withdrawn" }[r.type]);
 }
 function toast(msg) {
   document.querySelector(".toast")?.remove();

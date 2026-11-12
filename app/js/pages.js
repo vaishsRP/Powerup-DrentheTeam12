@@ -9,17 +9,22 @@ const TYPE_ICON = { solar: "sun", battery: "battery-charging", defence: "shield"
 const pill = (cls, text) => `<span class="pill ${cls}">${text}</span>`;
 // a new request shows no date until an expert of the grid operator has confirmed the estimate
 const pending = (o) => o?.review === "pending";
-const estText = (o, r) => (pending(o) ? t("in_review") : ENGINE.estRange(r));
+// a customer can ask to withdraw a request; the planner confirms it, and only then does it leave the queue
+const withdrawn = (o) => (STORE.state.applied.cancelled || []).includes(o?.id);
+const askedWithdraw = (o) => !withdrawn(o) && (STORE.state.cancelReqs || []).includes(o?.id);
+const estText = (o, r) => (withdrawn(o) ? t("cancelled") : pending(o) ? t("in_review") : ENGINE.estRange(r));
 // the grid operator at the project's location (capaciteitskaart), and who acts next on a customer's project
 const operatorFor = (o) => (ENGINE.realAreaAt(o.lat, o.lon)?.properties.operator || "").split(",")[0].trim() || t("netbeheerder");
 const nextOwner = (o) => {
   const op = operatorFor(o);
+  if (withdrawn(o)) return { who: t("who_op", { op }), text: t("next_withdrawn") };
+  if (askedWithdraw(o)) return { who: t("who_op", { op }), text: t("next_withdraw_req") };
   if (pending(o)) return { who: t("who_op", { op }), text: t("next_review") };
   if (o.maturity === "permit") return { who: t("who_op_you", { op }), text: t("next_permit") };
   if (o.maturity === "contracted") return { who: t("who_op", { op }), text: t("next_contracted") };
   return { who: t("who_you"), text: t("next_" + o.maturity) };
 };
-const estPill = (o, r) => (pending(o) ? pill("s-neutral", t("in_review")) : pill(STATUS_CLASS[r?.status] || "s-neutral", t(r?.status || "proceeds")));
+const estPill = (o, r) => withdrawn(o) ? pill("s-neutral", t("cancelled")) : askedWithdraw(o) ? pill("s-investigate", t("cancel_pending")) : (pending(o) ? pill("s-neutral", t("in_review")) : pill(STATUS_CLASS[r?.status] || "s-neutral", t(r?.status || "proceeds")));
 const stationFor = (areaId) => STORE.data.stations.find((s) => s.name.replace(/^\d+ kV /, "").toLowerCase().replace(/ /g, "-") === areaId);
 function meter(ratio) { // the dot meter: 10 dots, filled share = use of capacity, red dots = over capacity
   const n = Math.round(Math.min(ratio, 1.5) * 10);
@@ -147,7 +152,7 @@ const ProjectPage = {
         <button class="btn btn-quiet" style="padding:4px 8px;margin-top:4px;font-size:12px" data-opt="${type}">${t("request_option")}</button></div></div>`;
     }).join("");
     const ev = (STORE.state.events[o.id] || []).map((e) => `<li class="${e.kind}"><span class="dot"></span><time>${e.date}</time><span class="t">${eventText(e)}</span></li>`).join("");
-    const future = r?.year && !pending(o) ? `<li class="todo"><span class="dot"></span><time>${ENGINE.estRange(r)}</time><span class="t">${t("ev_connected")}</span></li>` : "";
+    const future = r?.year && !pending(o) && !withdrawn(o) ? `<li class="todo"><span class="dot"></span><time>${ENGINE.estRange(r)}</time><span class="t">${t("ev_connected")}</span></li>` : "";
     return `<div class="page">
       <a class="back" href="#/klant">${icon("arrow-left", 16)} ${t("back_projects")}</a>
       <div class="split">
@@ -169,11 +174,13 @@ const ProjectPage = {
             </div>
           </div>
           <div class="panel panel-grey"><h2>${icon("list-checks")} ${t("next_step")}</h2><p>${nextOwner(o).text}</p><p class="who">${t("who")}: <b>${nextOwner(o).who}</b></p></div>
-          ${pending(o) ? "" : `<h2 class="section-title">${icon("zap")} ${t("sooner")}</h2>
+          ${pending(o) || withdrawn(o) ? "" : `<h2 class="section-title">${icon("zap")} ${t("sooner")}</h2>
           <p class="small muted">${t("sooner_lead")}</p>
           <div class="panel" style="margin-top:10px;padding-top:6px;padding-bottom:6px">${opts}</div>`}
           <h2 class="section-title">${icon("calendar-clock")} ${t("history")}</h2>
           <ul class="timeline">${ev}${future}</ul>
+          ${withdrawn(o) || askedWithdraw(o) ? "" : `<div class="withdraw" id="wd"><button type="button" class="btn btn-quiet" id="wd-ask">${icon("x", 16)} ${t("req_cancel")}</button>
+            <div class="wd-confirm" hidden><p class="small">${t("req_cancel_q")}</p><p style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn btn-danger" id="wd-yes">${t("req_cancel_yes")}</button><button type="button" class="btn btn-quiet" id="wd-no">${t("req_cancel_no")}</button></p></div></div>`}
         </div>
         <div class="sticky"><div class="map" id="map" style="height:560px"></div><p class="map-caption">${t("tbc")}: ${lang() === "nl" ? "stippellijn en grijze labels" : "dotted line and grey labels"}.</p><p class="map-caption">${t("grid_note")}</p></div>
       </div></div>`;
@@ -181,6 +188,16 @@ const ProjectPage = {
   mount(root, id) {
     const o = ENGINE.orders().find((x) => x.id === id);
     if (!o) return;
+    const wd = root.querySelector("#wd");
+    if (wd) {
+      root.querySelector("#wd-ask").onclick = () => { wd.querySelector(".wd-confirm").hidden = false; root.querySelector("#wd-ask").hidden = true; };
+      root.querySelector("#wd-no").onclick = () => { wd.querySelector(".wd-confirm").hidden = true; root.querySelector("#wd-ask").hidden = false; };
+      root.querySelector("#wd-yes").onclick = () => {
+        STORE.state.cancelReqs = [...(STORE.state.cancelReqs || []), o.id];
+        (STORE.state.events[o.id] ??= []).push({ date: TODAY, kind: "now", key: "ev_cancel_req" });
+        STORE.save(); toast(t("cancel_pending")); route();
+      };
+    }
     root.querySelectorAll("[data-opt]").forEach((b) => (b.onclick = () => {
       (STORE.state.events[o.id] ??= []).push({ date: TODAY, kind: "now", key: "ev_option", vars: { option: b.dataset.opt } });
       STORE.save(); toast(`${t("option_requested")} ${t("o_" + b.dataset.opt).toLowerCase()}`); route();
@@ -307,6 +324,12 @@ const OverviewPage = {
       root.querySelector("#yr").value = s.year; root.querySelector("#yr-v").textContent = s.year;
       root.querySelector("#side").innerHTML = this.side(sim);
       root.querySelector("#show-all")?.addEventListener("click", () => { STORE.state.showAll = !STORE.state.showAll; draw(); });
+      root.querySelectorAll("[data-withdraw]").forEach((b) => (b.onclick = () => {
+        const id = b.dataset.withdraw, s2 = STORE.state;
+        markWithdrawn(id);
+        const n = applyDecision({ ...s2.applied, cancelled: [...(s2.applied.cancelled || []), id] }, [id]);
+        toast(t(n === 1 ? "cx_done1" : n ? "cx_done" : "cx_done0", { n })); draw();
+      }));
       root.querySelectorAll("[data-confirm]").forEach((b) => (b.onclick = () => {
         const o = ENGINE.orders().find((x) => x.id === b.dataset.confirm), r = sim.res[o.id];
         ENGINE.confirmOrder(o.id);
@@ -322,6 +345,15 @@ const OverviewPage = {
     root.querySelector("#yr").oninput = (e) => { STORE.state.year = +e.target.value; STORE.state.view = "proj"; draw(); };
     draw();
     return () => { clearTimeout(fit); map.remove(); };
+  },
+  // customers asking to withdraw a request: confirming takes it out of the queue and tells everyone affected
+  withdrawals(sim) {
+    const list = ENGINE.orders().filter(askedWithdraw);
+    if (!list.length) return "";
+    return `<div class="side-h"><h2>${t("cx_title")} (${list.length})</h2><p class="small muted">${t("cx_lead")}</p></div>
+      ${list.map((o) => `<div class="review-row"><div><b>${esc(title(o))}</b><div class="small muted">${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()}, ${esc(ENGINE.area(o.area_id)?.name || "")}</div>
+        <div class="small">${t("cx_frees", { mw: ENGINE.oMW(o), area: esc(ENGINE.area(o.area_id)?.name || "") })}</div></div>
+        <button class="btn btn-danger" data-withdraw="${o.id}">${icon("x", 16)} ${t("cx_send")}</button></div>`).join("")}`;
   },
   // new requests waiting for an expert to confirm the model's estimate
   reviews(sim) {
@@ -350,6 +382,7 @@ const OverviewPage = {
         <div><b class="${un.f + un.e >= 0.5 ? "bad" : ""}">${Math.round(un.f + un.e)} MW</b><span>${t("k_unmet", { y: s.year })}</span></div>
         <div><b>${Math.round(un.f)} / ${Math.round(un.e)} MW</b><span>${t("k_unmet_split")}</span></div>
       </div>
+      ${this.withdrawals(sim)}
       ${this.reviews(sim)}
       <div class="side-h"><h2>${t("attention")}</h2><p class="small muted">${t("attention_lead")}</p></div>
       ${rows.filter((r) => s.showAll || r.d || r.now.status !== "room").map((r) => `<a class="area-row" href="#/planner/gebied/${r.id}">
@@ -360,6 +393,31 @@ const OverviewPage = {
       ${rows.some((r) => !(r.d || r.now.status !== "room")) ? `<button class="show-all" id="show-all">${s.showAll ? t("show_less") : t("show_all", { n: rows.length })}</button>` : ""}`;
   },
 };
+
+// the withdrawn project's own timeline entry, and the request is no longer waiting
+function markWithdrawn(id) {
+  const s = STORE.state, o = ENGINE.orders().find((x) => x.id === id);
+  s.cancelReqs = (s.cancelReqs || []).filter((x) => x !== id);
+  if (!o?.mine) return;
+  const list = (s.events[id] ??= []);
+  list.forEach((e) => { if (e.kind === "now") e.kind = "done"; });
+  list.push({ date: TODAY, kind: "warn", key: "ev_cancelled" });
+}
+// put a decision in force and write the change into every affected customer's timeline; returns how many were told
+function applyDecision(next, skip = []) {
+  const s = STORE.state, D = ENGINE.diff(s.applied, next);
+  let n = 0;
+  for (const c of D.out) {
+    if (!c.o?.mine || pending(c.o) || skip.includes(c.id)) continue; n++;
+    const list = (s.events[c.id] ??= []);
+    list.forEach((e) => { if (e.kind === "now") e.kind = "done"; });
+    list.push({ date: TODAY, kind: c.to?.year != null && c.from?.year != null && c.to.year < c.from.year ? "now" : "warn", key: "ev_changed",
+      vars: { from: c.from ? ENGINE.estRange(c.from) : "–", to: c.to ? ENGINE.estRange(c.to) : "–", reason: c.reason } });
+  }
+  s.applied = JSON.parse(JSON.stringify(next)); s.draft = JSON.parse(JSON.stringify(next));
+  STORE.save();
+  return n;
+}
 
 // what holds a grid upgrade up, read from its source fields (Enexis IP2026 notes); nothing is invented
 const noFlag = (s) => String(s || "").replace(/\s*🔎/g, "");
@@ -400,7 +458,7 @@ const AreaPage = {
         ${bl.length ? `<div class="sub tags">${bl.map((k) => `<span class="tag">${t(k)}</span>`).join("")}</div>` : ""}
         ${affected.length ? `<div class="sub">${t("affected_projects")}: ${affected.slice(0, 3).map((o) => esc(title(o))).join(", ")}</div>` : ""}</div>`;
     }).join("") || `<p class="muted">–</p>`;
-    const queue = ENGINE.orders().filter((o) => o.area_id === id).sort((a, b) => a.priority - b.priority || a.request_seq - b.request_seq).map((o) => {
+    const queue = ENGINE.orders().filter((o) => o.area_id === id && !withdrawn(o)).sort((a, b) => a.priority - b.priority || a.request_seq - b.request_seq).map((o) => {
       const r = sim.res[o.id];
       return `<div class="queue-row"><span class="prio p${o.priority}" title="${t("pr" + o.priority)}">${o.priority}</span>
         <div><b>${esc(title(o))}</b><div class="small muted">${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()}, ${t("pr" + o.priority).toLowerCase()}</div></div>
@@ -449,7 +507,7 @@ const AreaPage = {
       .reduce((best, y) => { const a = ENGINE.areaStatus(sim, id, s.dir, y); return !best || a.shortfall > best.a.shortfall ? { y, a } : best; }, null);
     const at = peak.a, nextPmiek = Math.max(d.pmiek, 2027); // late: the next pMIEK round is the first decision moment left
     const next = nextAction(ups);
-    const waiting = ENGINE.orders().filter((o) => o.area_id === id && o.category !== "battery" && ENGINE.oDir(o) === s.dir && (sim.res[o.id]?.year ?? 9999) > o.year_needed);
+    const waiting = ENGINE.orders().filter((o) => o.area_id === id && o.category !== "battery" && !withdrawn(o) && ENGINE.oDir(o) === s.dir && (sim.res[o.id]?.year ?? 9999) > o.year_needed);
     const bl = [...new Set(ups.flatMap(blockers))];
     return `<dl class="dec">
         <dt>${t("dec_shortfall", { y: peak.y })}</dt><dd><b>${Math.round(at.shortfall)} MW</b> <span class="muted">${t("dec_split", { f: Math.round(at.unmetFormal), e: Math.round(at.unmetEarly) })}</span></dd>
@@ -507,12 +565,12 @@ const SimPage = {
   projects(sim) {
     const s = STORE.state, scope = this.scope ?? (s.simArea ? "area" : "all"), now = ENGINE.simulate(s.applied);
     const rank = { not_possible: 0, delayed: 1, proceeds: 2 };
-    const list = ENGINE.orders().filter((o) => o.category !== "battery" && (scope === "all" || o.area_id === s.simArea))
+    const list = ENGINE.orders().filter((o) => o.category !== "battery" && !withdrawn(o) && (scope === "all" || o.area_id === s.simArea))
       .sort((a, b) => (rank[sim.res[a.id]?.status] ?? 3) - (rank[sim.res[b.id]?.status] ?? 3) || (ENGINE.area(a.area_id)?.name || "").localeCompare(ENGINE.area(b.area_id)?.name || ""));
     const rows = list.map((o) => {
       const r0 = now.res[o.id], r1 = sim.res[o.id], e0 = ENGINE.estRange(r0), e1 = ENGINE.estRange(r1);
       return `<button type="button" class="proj-row ${o.area_id === s.simArea ? "on" : ""}" data-proj="${o.area_id}">
-        <span class="pr-main"><b>${esc(title(o))}</b>${o.mine ? ` ${pill("s-neutral", t("role_customer"))}` : ""}${pending(o) ? ` ${pill("s-neutral", t("in_review"))}` : ""}
+        <span class="pr-main"><b>${esc(title(o))}</b>${o.mine ? ` ${pill("s-neutral", t("role_customer"))}` : ""}${pending(o) ? ` ${pill("s-neutral", t("in_review"))}` : ""}${askedWithdraw(o) ? ` ${pill("s-investigate", t("cancel_pending"))}` : ""}
           <span class="pr-sub">${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()} · ${esc(ENGINE.area(o.area_id)?.name || "")} · ${t(ENGINE.isFormal(o) ? "formal" : "early")}</span></span>
         <span class="pr-end">${e0 !== e1 ? `<span class="from">${e0}</span> ` : ""}<b>${e1}</b>${pill(STATUS_CLASS[r1?.status] || "s-neutral", t(r1?.status || "proceeds"))}</span></button>`;
     }).join("");
@@ -579,7 +637,7 @@ const SimPage = {
           <input id="s-mw" type="number" min="1" max="200" step="1" value="${s.batMW}" aria-label="${t("sim_bat_mw")}"></div></div>
         <button class="btn" id="s-bat" ${s.simArea ? "" : "disabled"}>${icon("battery-charging")} ${s.simArea ? t("sim_bat_btn", { mw: s.batMW }) : t("sim_choose")}</button>
         ${d.batteries.length ? `<p class="small muted" style="margin-top:12px">${t("sim_bat_placed")}</p>${d.batteries.map((b) => `<div class="bat-row">${icon("battery-charging", 16)}<span><b>${b.mw_flex} MW</b> · ${esc(ENGINE.area(b.area_id)?.name || "")}</span><button type="button" class="btn btn-quiet" data-unbat="${b.id}" aria-label="${t("sim_bat_remove")}">${icon("x", 14)}</button></div>`).join("")}` : ""}
-        ${q.length ? `<h3 style="margin-top:18px">${t("sim_withdraw")}</h3>${q.map((o) => `<label style="display:flex;gap:8px;align-items:center;font-size:13px;padding:4px 0"><input type="checkbox" data-cancel="${o.id}" ${d.cancelled.includes(o.id) ? "checked" : ""}> ${esc(title(o))}, ${ENGINE.oMW(o)} MW</label>`).join("")}` : ""}`;
+        ${q.length ? `<h3 style="margin-top:18px">${t("sim_withdraw")}</h3>${q.filter((o) => !withdrawn(o)).map((o) => `<label style="display:flex;gap:8px;align-items:center;font-size:13px;padding:4px 0"><input type="checkbox" data-cancel="${o.id}" ${d.cancelled.includes(o.id) ? "checked" : ""}> ${esc(title(o))}, ${ENGINE.oMW(o)} MW${askedWithdraw(o) ? ` ${pill("s-investigate", t("cancel_pending"))}` : ""}</label>`).join("")}` : ""}`;
       right.innerHTML = `<h2>${t("effect")}</h2><p class="small muted">${t("now")} → ${t("after")}</p>
         <div class="compare">${["proceeds", "delayed", "not_possible"].map((k, i) => `<div><b>${D.before[i]} → ${D.after[i]}</b><span>${t(k)}</span></div>`).join("")}</div>
         ${D.out.length ? D.out.map((c) => `<div class="change"><b>${esc(title(c.o) || c.id)}</b> ${c.o?.mine ? pill("s-neutral", t("role_customer")) : ""}<br>
@@ -637,15 +695,9 @@ const SimPage = {
       left.querySelectorAll("[data-cancel]").forEach((i) => (i.onchange = () => {
         s.draft.cancelled = i.checked ? [...s.draft.cancelled, i.dataset.cancel] : s.draft.cancelled.filter((x) => x !== i.dataset.cancel); draw(); }));
       right.querySelector("#s-apply").onclick = () => {
-        let n = 0;
-        for (const c of D.out) {
-          if (!c.o?.mine || pending(c.o)) continue; n++;
-          const list = (s.events[c.id] ??= []);
-          list.forEach((e) => { if (e.kind === "now") e.kind = "done"; });
-          list.push({ date: TODAY, kind: c.to?.year != null && c.from?.year != null && c.to.year < c.from.year ? "now" : "warn", key: "ev_changed",
-            vars: { from: c.from ? ENGINE.estRange(c.from) : "–", to: c.to ? ENGINE.estRange(c.to) : "–", reason: c.reason } });
-        }
-        s.applied = JSON.parse(JSON.stringify(s.draft)); STORE.save(); toast(t("informed", { n })); draw();
+        const gone = s.draft.cancelled.filter((id) => !s.applied.cancelled.includes(id));
+        gone.forEach(markWithdrawn);
+        const n = applyDecision(s.draft, gone); toast(t(n === 1 ? "informed1" : n ? "informed" : "informed0", { n })); draw();
       };
       right.querySelector("#s-reset").onclick = () => { s.draft = JSON.parse(JSON.stringify(s.applied)); draw(); };
     };

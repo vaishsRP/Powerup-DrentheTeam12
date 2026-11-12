@@ -141,6 +141,7 @@ const ENGINE = (() => {
   }
   function reason(o, a, b, res) {
     if (!o) return { type: "cancel" };
+    if ((b.cancelled || []).includes(o.id) && !(a.cancelled || []).includes(o.id)) return { type: "withdrawn" };
     const all = D().upgrades.concat(a.newUpgrades || [], b.newUpgrades || []).filter((u) => u.area_id === o.area_id);
     const ch = all.filter((u) => upYear(u, a) !== upYear(u, b));
     const moved = ch.find((u) => upYear(u, b) === res?.year) || ch[0]; // the change that now sets the date, if any

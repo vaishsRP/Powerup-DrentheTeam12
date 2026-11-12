@@ -80,6 +80,10 @@ const TEXT = {
     rv_title: "Nieuwe aanvragen te beoordelen", rv_lead: "Controleer het voorstel van het model en stuur de inschatting naar de klant.", rv_model: "Voorstel", rv_send: "Bevestigen en versturen", rv_sent: "Inschatting verstuurd naar de klant", // NL?
     sim_upg_lead: "Kies een gebied om de netuitbreidingen daar te zien, of kies er hieronder een.", sim_upg_pick: "Netuitbreiding toevoegen…", sim_upg_ready: "Klaar in", sim_upg_off: "Niet uitvoeren", sim_upg_hide: "Uit de lijst halen", // NL?
     sim_projects: "Projecten", sim_projects_lead: "Klik een project om zijn gebied en netuitbreidingen te kiezen.", sim_scope_area: "Dit gebied", sim_scope_all: "Heel Drenthe", sim_projects_none: "Geen projecten in dit gebied.", // NL?
+    req_cancel: "Aanvraag intrekken", req_cancel_q: "De netbeheerder verwerkt de intrekking. Daarna vervalt uw plek in de wachtrij.", req_cancel_yes: "Ja, intrekken aanvragen", req_cancel_no: "Aanvraag houden", // NL?
+    cancel_pending: "Intrekking aangevraagd", cancelled: "Ingetrokken", ev_cancel_req: "U heeft gevraagd de aanvraag in te trekken.", ev_cancelled: "Aanvraag ingetrokken door de netbeheerder. Uw plek in de wachtrij is vrijgegeven.", // NL?
+    cx_title: "Verzoeken om in te trekken", cx_lead: "De klant wil deze aanvraag intrekken. Bevestig om de plek in de wachtrij vrij te geven.", cx_send: "Intrekking bevestigen", cx_frees: "Geeft {mw} MW vrij in {area}", cx_done: "Aanvraag ingetrokken. {n} andere klanten zien de wijziging in hun tijdlijn.", cx_done1: "Aanvraag ingetrokken. 1 andere klant ziet de wijziging in de tijdlijn.", cx_done0: "Aanvraag ingetrokken.", next_withdrawn: "Niets meer te doen: de aanvraag is ingetrokken.", next_withdraw_req: "De netbeheerder verwerkt uw verzoek om de aanvraag in te trekken.", because_withdrawn: "ingetrokken", // NL?
+    // NL?
     sim_new: "Nieuwe netuitbreiding", sim_new_kind: "Soort", sim_new_mw: "Extra capaciteit (MW)", sim_new_btn: "Toevoegen in {area}", sim_new_tag: "nieuw", // NL?
     k_transformer: "Trafo-uitbreiding", k_new_station: "Nieuw station", k_line: "Verzwaring verbinding", because_upg_off: "omdat {u} niet doorgaat", // NL?
     view_proj_legend: "verwachte status per gebied", // NL?
@@ -98,7 +102,7 @@ const TEXT = {
     sim_upg: "Netuitbreidingen in dit besluit", sim_bat: "Batterij plaatsen", sim_bat_btn: "Plaats {mw} MW batterij", sim_bat_mw: "Vermogen batterij (MW)", sim_bat_placed: "Geplaatst in dit besluit", sim_bat_remove: "Verwijder", sim_choose: "Kies een gebied", // NL?
     sim_withdraw: "Aanvraag intrekken", effect: "Effect op aanvragen", now: "nu", after: "na besluit",
     no_change: "Nog geen verschil. Verander links een besluit.", confirm: "Besluit vastleggen en klanten informeren", reset: "Terugzetten",
-    informed: "Besluit vastgelegd. {n} klanten zien de wijziging in hun tijdlijn.",
+    informed: "Besluit vastgelegd. {n} klanten zien de wijziging in hun tijdlijn.", informed1: "Besluit vastgelegd. 1 klant ziet de wijziging in de tijdlijn.", informed0: "Besluit vastgelegd.",
     // about
     about_title: "Over deze demo",
     about_p1: "Deze demo laat zien hoe één gedeeld register van energieplannen klanten en planners dezelfde informatie geeft. Klanten krijgen inzicht in ruil voor het vroeg registreren van hun plannen. Planners krijgen zo actuele gegevens per locatie.",
@@ -191,6 +195,10 @@ const TEXT = {
     rv_title: "New requests to review", rv_lead: "Check the model's proposal and send the estimate to the customer.", rv_model: "Proposal", rv_send: "Confirm and send", rv_sent: "Estimate sent to the customer",
     sim_upg_lead: "Choose an area to see its grid upgrades, or pick one below.", sim_upg_pick: "Add a grid upgrade…", sim_upg_ready: "Ready in", sim_upg_off: "Don't build", sim_upg_hide: "Remove from the list",
     sim_projects: "Projects", sim_projects_lead: "Click a project to choose its area and grid upgrades.", sim_scope_area: "This area", sim_scope_all: "All of Drenthe", sim_projects_none: "No projects in this area.",
+    req_cancel: "Withdraw request", req_cancel_q: "The grid operator processes the withdrawal. After that your place in the queue is released.", req_cancel_yes: "Yes, ask to withdraw", req_cancel_no: "Keep request",
+    cancel_pending: "Withdrawal requested", cancelled: "Withdrawn", ev_cancel_req: "You asked to withdraw the request.", ev_cancelled: "Request withdrawn by the grid operator. Your place in the queue has been released.",
+    cx_title: "Withdrawal requests", cx_lead: "The customer wants to withdraw this request. Confirm to release its place in the queue.", cx_send: "Confirm withdrawal", cx_frees: "Frees {mw} MW in {area}", cx_done: "Request withdrawn. {n} other customers see the change in their timeline.", cx_done1: "Request withdrawn. 1 other customer sees the change in their timeline.", cx_done0: "Request withdrawn.", next_withdrawn: "Nothing left to do: the request has been withdrawn.", next_withdraw_req: "The grid operator is processing your request to withdraw.", because_withdrawn: "withdrawn",
+   
     sim_new: "New grid upgrade", sim_new_kind: "Type", sim_new_mw: "Extra capacity (MW)", sim_new_btn: "Add in {area}", sim_new_tag: "new",
     k_transformer: "Transformer upgrade", k_new_station: "New station", k_line: "Line upgrade", because_upg_off: "because {u} will not go ahead",
     view_proj_legend: "expected status per area",
@@ -208,7 +216,7 @@ const TEXT = {
     sim_upg: "Grid upgrades in this decision", sim_bat: "Place a battery", sim_bat_btn: "Place a {mw} MW battery", sim_bat_mw: "Battery power (MW)", sim_bat_placed: "Placed in this decision", sim_bat_remove: "Remove", sim_choose: "Choose an area",
     sim_withdraw: "Withdraw request", effect: "Effect on requests", now: "now", after: "after decision",
     no_change: "No difference yet. Change a decision on the left.", confirm: "Record decision and notify customers", reset: "Reset",
-    informed: "Decision recorded. {n} customers see the change in their timeline.",
+    informed: "Decision recorded. {n} customers see the change in their timeline.", informed1: "Decision recorded. 1 customer sees the change in their timeline.", informed0: "Decision recorded.",
     about_title: "About this demo",
     about_p1: "This demo shows how one shared register of energy plans gives customers and planners the same information. Customers get transparency in return for registering their plans early. Planners get current data per location.",
     about_h_data: "What is real and what is demo",

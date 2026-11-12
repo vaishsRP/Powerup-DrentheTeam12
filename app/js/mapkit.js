@@ -209,6 +209,7 @@ const MAPKIT = (() => {
     for (const o of ENGINE.orders().concat(sim.dec.batteries || [])) {
       if (opts.mineOnly && !o.mine) continue;
       if (opts.skip === o.id) continue;
+      if ((STORE.state.applied.cancelled || []).includes(o.id)) continue; // withdrawn for good
       const r = sim.res[o.id], st = (sim.dec.cancelled || []).includes(o.id) ? null : r?.status;
       const m = L.circleMarker([o.lat, o.lon], { pane: "points", radius: o.mine ? 8 : 6, weight: 2, color: "#fff", fillColor: st ? COL[st] : "#999", fillOpacity: 1 }).addTo(g);
       if (opts.onClick) m.on("click", () => opts.onClick(o));
