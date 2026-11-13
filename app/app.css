@@ -391,3 +391,11 @@ footer .in { max-width: 1240px; margin: 0 auto; }
 .btn-danger { background: var(--shortage-tx); border-color: var(--shortage-tx); color: #fff; }
 .btn-danger:hover { filter: brightness(1.08); }
 [hidden] { display: none !important; }
+/* underlying infrastructure: cable to the station, access to the site */
+.chips-s { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.chip-s { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: #EEF3EE; color: var(--ink); font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.chip-s.ok { background: #E5F4E4; color: #1F6B2A; }
+.chip-s.new { background: #FDEBDD; color: #8A3B12; }
+.cable-note { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: var(--r); font-size: var(--fs-sm); margin-top: 8px; }
+.cable-note.ok { background: #E5F4E4; color: #1F6B2A; }
+.cable-note.new { background: #FDEBDD; color: #8A3B12; }

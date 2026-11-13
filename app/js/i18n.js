@@ -50,7 +50,7 @@ const TEXT = {
     ev_connected: "Verwachte aansluiting",
     because_upg: "omdat {u} nu in {y} klaar is", because_bat: "omdat een batterij in uw gebied ruimte maakt", because_cancel: "omdat een andere aanvraag is ingetrokken", because_prio: "door aanvragen met voorrang",
     // new request
-    new_title: "Nieuwe aansluitaanvraag", new_lead: "Vul in wat u al weet. U ziet direct een eerste inschatting.",
+    new_title: "Nieuwe aansluitaanvraag", new_lead: "Vul in wat u al weet en kies de locatie op de kaart. De netbeheerder stuurt u daarna een eerste inschatting.",
     s1: "Uw project", s2: "Locatie", s3: "Controleren en indienen",
     f_name: "Projectnaam", f_name_ph: "Zonnepark De Velden", f_type: "Soort project", f_mw: "Vermogen in MW", f_mw_hint: "Het hoogste vermogen dat u van het net vraagt of terug levert.",
     f_year: "Nodig vanaf", f_phase: "Hoe ver bent u?", f_loc_hint: "Klik op de kaart waar het project komt.", f_loc_none: "Nog geen locatie gekozen", f_loc_set: "Locatie gekozen in",
@@ -72,6 +72,10 @@ const TEXT = {
     blk_location: "Locatie / grond nog niet rond", blk_permit: "Vergunning / ruimtelijke procedure", blk_contractors: "Tekort aan aannemers", blk_coord: "Afstemming Enexis en TenneT", blk_none_known: "Geen blokkade bekend in de bronnen", // NL?
     own_pmiek: "Provincie en netbeheerder (pMIEK)", act_propose: "Netuitbreiding voorstellen voor het pMIEK", act_study: "Locatie en ontwerp vastleggen, investering opnemen in het investeringsplan", // NL?
     act_build: "Bouw afronden en vertraging op tijd melden", act_plan: "Vergunning en planning bevestigen", act_measures: "Tot dan: maatregelen (batterij, flexibel contract, cable pooling)", no_upg: "Nog geen netuitbreiding gepland in dit gebied", // NL?
+    // underlying infrastructure (expert feedback Fri): cable to the station, access to the site
+    cable: "Kabel", cable_ok: "Er ligt al een kabel naar station {st}.", cable_new: "Nog geen kabel: ±{km} km nieuwe kabel nodig naar station {st}.", // NL?
+    cable_ok_s: "Kabel aanwezig", cable_new_s: "Nieuwe kabel, ±{km} km", cable_new_leg: "Nieuwe kabel nodig", demo_assume: "demo-aanname", l_links: "Kabel naar station", // NL?
+    access: "Bereikbaarheid", f_access: "Bereikbaarheid van de locatie", acc_road: "Over de weg (auto, vrachtverkeer)", acc_bus: "Over de weg en met de bus", acc_none: "Nog geen ontsluiting", // NL?
     // new request review + simulator decisions (Thu evening)
     review_title: "Wat gebeurt er na het indienen?", review_p: "Een expert van de netbeheerder beoordeelt uw aanvraag. Daarna krijgt u een eerste inschatting van de aansluitdatum.", // NL?
     review_today: "Vandaag op de capaciteitskaart", in_review: "In beoordeling", // NL?
@@ -168,7 +172,7 @@ const TEXT = {
     ev_submitted: "Request submitted", ev_queued: "Placed in the queue", ev_estimate: "First estimate", ev_changed: "Estimate changed",
     ev_connected: "Expected connection",
     because_upg: "because {u} is now ready in {y}", because_bat: "because a battery in your area frees up room", because_cancel: "because another request was withdrawn", because_prio: "because of requests with priority",
-    new_title: "New connection request", new_lead: "Fill in what you already know. You'll see a first estimate straight away.",
+    new_title: "New connection request", new_lead: "Fill in what you already know and choose the location on the map. The grid operator then sends you a first estimate.",
     s1: "Your project", s2: "Location", s3: "Check and submit",
     f_name: "Project name", f_name_ph: "Solar park De Velden", f_type: "Type of project", f_mw: "Power in MW", f_mw_hint: "The highest power you take from or feed into the grid.",
     f_year: "Needed from", f_phase: "How far along are you?", f_loc_hint: "Click on the map where the project will be.", f_loc_none: "No location chosen yet", f_loc_set: "Location chosen in",
@@ -188,6 +192,9 @@ const TEXT = {
     blk_location: "Location / land not settled", blk_permit: "Permit / spatial procedure", blk_contractors: "Shortage of contractors", blk_coord: "Coordination Enexis and TenneT", blk_none_known: "No blocker known in the sources",
     own_pmiek: "Province and grid operator (pMIEK)", act_propose: "Propose a grid upgrade for the pMIEK", act_study: "Fix location and design, put the investment in the investment plan",
     act_build: "Finish construction and report delays early", act_plan: "Confirm permit and schedule", act_measures: "Until then: measures (battery, flexible contract, cable pooling)", no_upg: "No grid upgrade planned in this area yet",
+    cable: "Cable", cable_ok: "A cable to station {st} is already in place.", cable_new: "No cable yet: about {km} km of new cable needed to station {st}.",
+    cable_ok_s: "Cable in place", cable_new_s: "New cable, about {km} km", cable_new_leg: "New cable needed", demo_assume: "demo assumption", l_links: "Cable to station",
+    access: "Access", f_access: "How the site is reached", acc_road: "By road (cars, trucks)", acc_bus: "By road and by bus", acc_none: "No access road yet",
     review_title: "What happens after you submit?", review_p: "An expert at the grid operator reviews your request. You then get a first estimate of the connection date.",
     review_today: "Today on the capacity map", in_review: "Under review",
     review_wait: "An expert at the grid operator is checking your request. Once the estimate is confirmed, you'll see the expected connection date and the reason here.",

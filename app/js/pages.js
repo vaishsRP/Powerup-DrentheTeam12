@@ -26,6 +26,18 @@ const nextOwner = (o) => {
 };
 const estPill = (o, r) => withdrawn(o) ? pill("s-neutral", t("cancelled")) : askedWithdraw(o) ? pill("s-investigate", t("cancel_pending")) : (pending(o) ? pill("s-neutral", t("in_review")) : pill(STATUS_CLASS[r?.status] || "s-neutral", t(r?.status || "proceeds")));
 const stationFor = (areaId) => STORE.data.stations.find((s) => s.name.replace(/^\d+ kV /, "").toLowerCase().replace(/ /g, "-") === areaId);
+// Underlying infrastructure (expert feedback): the cable from a project to its station, and how the site is reached.
+// Demo assumption, not real cable data: within CABLE_KM of its station a project counts as already cabled.
+const CABLE_KM = 2;
+function cableFor(lat, lon, areaId) {
+  const st = stationFor(areaId);
+  if (!st || lat == null) return null;
+  const km = L.latLng(lat, lon).distanceTo([st.lat, st.lon]) / 1000;
+  return { st, km, ok: km <= CABLE_KM, name: st.name.replace(/^\d+ kV /, "") };
+}
+const cableText = (c, short) => !c ? "–" : c.ok ? t(short ? "cable_ok_s" : "cable_ok", { st: esc(c.name) }) : t(short ? "cable_new_s" : "cable_new", { km: c.km.toFixed(1).replace(".", lang() === "nl" ? "," : "."), st: esc(c.name) });
+const cableChip = (c) => (c ? `<span class="chip-s ${c.ok ? "ok" : "new"}">${icon("cable", 13)} ${cableText(c, true)}</span>` : "");
+const accessChip = (o) => `<span class="chip-s ${(o.access || "road") === "none" ? "new" : ""}">${icon(o.access === "bus" ? "bus" : "car", 13)} ${t("acc_" + (o.access || "road"))}</span>`;
 function meter(ratio) { // the dot meter: 10 dots, filled share = use of capacity, red dots = over capacity
   const n = Math.round(Math.min(ratio, 1.5) * 10);
   return `<span class="meter" title="${Math.round(ratio * 100)}%">${Array.from({ length: Math.max(10, n) }, (_, i) => `<i class="${i < Math.min(n, 10) ? "f" : ""}${i >= 10 ? " o" : ""}"></i>`).join("")}</span>`;
@@ -169,6 +181,8 @@ const ProjectPage = {
               <div><b>${esc(operatorFor(o))}</b><span>${t("grid_owner")}</span></div>
               <div><b>${t("from_year", { y: o.year_needed })}</b><span>${t("pref_start")}</span></div>
               <div><b>${t("pr" + o.priority)}</b><span>${t("prio_note")}</span></div>
+              <div><b>${cableText(cableFor(o.lat, o.lon, o.area_id), true)}</b><span>${t("cable")} (${t("demo_assume")})</span></div>
+              <div><b>${t("acc_" + (o.access || "road"))}</b><span>${t("access")}</span></div>
               ${ra ? `<div><b>${pill(CODE_CLASS[code], t("cap" + code))}</b><span>${t("location_status")}: ${esc(ra.name)}</span></div>
               <div><b>${ra[`queue_${dir}_mw`] != null ? `${(+ra[`queue_${dir}_mw`]).toFixed(1)} MW` : "–"}</b><span>${t("queue")}, ${ra[`requests_${dir}`] ?? 0} ${t("requests")}</span></div>` : ""}
             </div>
@@ -209,7 +223,7 @@ const ProjectPage = {
     const st = stationFor(o.area_id), pts = [[o.lat, o.lon]];
     if (st) {
       pts.push([st.lat, st.lon]);
-      L.polyline([[o.lat, o.lon], [st.lat, st.lon]], { pane: "lines", color: MAPKIT.COL.navy, weight: 1.5, dashArray: "1 6", interactive: false }).addTo(g);
+      MAPKIT.cableLine(g, o.lat, o.lon, st, cableFor(o.lat, o.lon, o.area_id)?.ok);
       L.circleMarker([st.lat, st.lon], { pane: "points", radius: 8, weight: 2, color: "#fff", fillColor: MAPKIT.COL.navy, fillOpacity: 1 }).addTo(g);
       MAPKIT.drawLines(g, 2026, { near: [st.lat, st.lon], stationIds: [o.area_id] });
     }
@@ -248,6 +262,9 @@ const NewPage = {
       <div class="field"><label for="f-mat">${t("f_phase")}</label><select id="f-mat">${["idea", "planned", "permit", "contracted"].map((m) => `<option value="${m}" ${m === f.maturity ? "selected" : ""}>${t("m_" + m)}</option>`).join("")}</select></div>
       <div class="step-h"><span class="n">2</span><h2>${t("s2")}</h2></div>
       <p>${areaId ? `${icon("check")} ${t("f_loc_set")} <b>${esc(ENGINE.area(areaId).name)}</b>` : `<span class="muted">${t("f_loc_none")}. ${t("f_loc_hint")}</span>`}</p>
+      ${areaId ? (() => { const c = cableFor(f.lat, f.lon, areaId);
+        return c ? `<p class="cable-note ${c.ok ? "ok" : "new"}">${icon("cable", 18)} <span>${cableText(c)} <span class="muted">(${t("demo_assume")})</span></span></p>` : ""; })() : ""}
+      <div class="field" style="margin-top:12px"><label for="f-acc">${t("f_access")}</label><select id="f-acc">${["road", "bus", "none"].map((a) => `<option value="${a}" ${a === (f.access || "road") ? "selected" : ""}>${t("acc_" + a)}</option>`).join("")}</select></div>
       <div class="step-h"><span class="n">3</span><h2>${t("s3")}</h2></div>
       ${est}
       <p style="margin-top:16px"><button class="btn btn-primary" id="f-submit" ${areaId ? "" : "disabled"}>${icon("check")} ${t("submit")}</button></p>`;
@@ -256,27 +273,32 @@ const NewPage = {
     const f = this.form, feed = f.category === "solar", bat = f.category === "battery";
     return { id: "draft", title_nl: f.name || "Nieuw project", title_en: f.name || "New project", category: f.category,
       mw_offtake: feed || bat ? 0 : +f.mw, mw_feed_in: feed ? +f.mw : 0, mw_flex: bat ? +f.mw : 0, lat: f.lat, lon: f.lon, area_id: areaId,
-      year_needed: +f.year, maturity: f.maturity, municipality: "", priority: { battery: 1, defence: 2, hospital: 3, school: 3, housing: 3 }[f.category] ?? 4, request_seq: 9999 };
+      year_needed: +f.year, maturity: f.maturity, municipality: "", access: f.access || "road", priority: { battery: 1, defence: 2, hospital: 3, school: 3, housing: 3 }[f.category] ?? 4, request_seq: 9999 };
   },
   mount(root) {
     // zoom and pan (inside Drenthe) to find the exact spot; the mouse wheel keeps scrolling the form
     const map = MAPKIT.create(root.querySelector("#map"), { interactive: true, scroll: false }), g = L.layerGroup().addTo(map), mk = L.layerGroup().addTo(map);
     MAPKIT.drawRealAreas(g, this.form.category === "solar" ? "teruglevering" : "afname", { subtle: true });
     g.eachLayer((l) => l.eachLayer?.((x) => { x.unbindPopup(); x.on("click", (e) => pick(e.latlng)); }));
-    const drawPin = () => { mk.clearLayers(); if (this.form.lat != null) MAPKIT.pin(mk, this.form.lat, this.form.lon); };
+    const drawPin = () => {
+      mk.clearLayers(); if (this.form.lat == null) return;
+      const aid = ENGINE.areaAt(this.form.lat, this.form.lon), c = cableFor(this.form.lat, this.form.lon, aid);
+      if (c) { MAPKIT.cableLine(mk, this.form.lat, this.form.lon, c.st, c.ok); L.circleMarker([c.st.lat, c.st.lon], { pane: "points", radius: 7, weight: 2, color: "#fff", fillColor: MAPKIT.COL.navy, fillOpacity: 1, interactive: false }).addTo(mk); }
+      MAPKIT.pin(mk, this.form.lat, this.form.lon);
+    };
     const pick = (ll) => { if (!ENGINE.areaAt(ll.lat, ll.lng)) return; this.form.lat = +ll.lat.toFixed(4); this.form.lon = +ll.lng.toFixed(4); drawPin(); renderForm(); };
     map.on("click", (e) => pick(e.latlng));
     const renderForm = () => {
       const el = root.querySelector("#form"); el.innerHTML = this.formHtml();
-      const read = () => Object.assign(this.form, { name: el.querySelector("#f-name").value, mw: +el.querySelector("#f-mw").value || 1, year: +el.querySelector("#f-year").value || 2028, maturity: el.querySelector("#f-mat").value });
+      const read = () => Object.assign(this.form, { name: el.querySelector("#f-name").value, mw: +el.querySelector("#f-mw").value || 1, year: +el.querySelector("#f-year").value || 2028, maturity: el.querySelector("#f-mat").value, access: el.querySelector("#f-acc").value });
       el.querySelector("#f-name").oninput = read;
-      ["#f-mw", "#f-year", "#f-mat"].forEach((s) => (el.querySelector(s).onchange = () => { read(); renderForm(); }));
+      ["#f-mw", "#f-year", "#f-mat", "#f-acc"].forEach((s) => (el.querySelector(s).onchange = () => { read(); renderForm(); }));
       el.querySelectorAll("[data-cat]").forEach((b) => (b.onclick = () => { read(); this.form.category = b.dataset.cat; renderForm(); }));
       el.querySelector("#f-submit").onclick = () => {
         read(); const areaId = ENGINE.areaAt(this.form.lat, this.form.lon); if (!areaId) return;
         const o = ENGINE.addOrder({ ...this.draft(areaId), id: "u-" + Date.now(), municipality: "", review: "pending" });
         seedEvents(o); STORE.save();
-        this.form = { name: "", category: "solar", mw: 10, year: 2028, maturity: "planned", lat: null, lon: null };
+        this.form = { name: "", category: "solar", mw: 10, year: 2028, maturity: "planned", lat: null, lon: null, access: "road" };
         toast(t("submitted")); location.hash = `#/klant/project/${o.id}`;
       };
     };
@@ -293,7 +315,7 @@ const OverviewPage = {
         <span class="seg" id="v-view"><button data-v="today">${t("view_today")}</button><button data-v="proj">${t("view_proj")}</button></span>
         <span class="yr" id="v-yr"><span class="muted">${t("view_proj")}</span><b id="yr-v"></b><input type="range" id="yr" min="2026" max="2035" step="1"></span>
         <span class="seg" id="v-dir"><button data-d="afname">${t("afname")}</button><button data-d="teruglevering">${t("teruglevering")}</button></span>
-        <span class="chips" id="v-layers">${["stations", "upgrades", "cables", "projects"].map((k) => `<button class="chip" data-l="${k}">${t("l_" + k)}</button>`).join("")}</span>
+        <span class="chips" id="v-layers">${["stations", "upgrades", "cables", "projects", "links"].map((k) => `<button class="chip" data-l="${k}">${t("l_" + k)}</button>`).join("")}</span>
       </div>
       <div class="dash-map"><div class="map" id="map"></div></div></div>
       <aside class="dash-side" id="side"></aside></div>`;
@@ -311,11 +333,15 @@ const OverviewPage = {
       if (s.layers.cables) MAPKIT.drawLines(g, s.view === "today" ? 2026 : s.year);
       if (s.layers.stations) MAPKIT.drawStations(g);
       if (s.layers.upgrades) MAPKIT.drawUpgrades(g, s.applied, s.view === "today" ? 2026 : s.year, { labels: "risk" });
+      if (s.layers.links) for (const o of ENGINE.orders()) {
+        if (o.category === "battery" || withdrawn(o)) continue;
+        const c = cableFor(o.lat, o.lon, o.area_id); if (c) MAPKIT.cableLine(g, o.lat, o.lon, c.st, c.ok);
+      }
       if (s.layers.projects) MAPKIT.drawOrders(g, sim, { onClick: (o) => (location.hash = `#/planner/gebied/${o.area_id}`) });
       leg?.remove();
       const infraOn = s.layers.stations || s.layers.upgrades || s.layers.cables;
       leg = MAPKIT.legend(map, (s.view === "today" ? MAPKIT.legendReal(false) : MAPKIT.legendProj()) +
-        (infraOn ? MAPKIT.legendInfra() + (s.layers.cables ? `<section><div class="q">${t("grid_note")}</div></section>` : "") : ""), "bottomleft", { wide: true });
+        (infraOn ? MAPKIT.legendInfra() + (s.layers.cables ? `<section><div class="q">${t("grid_note")}</div></section>` : "") : "") + (s.layers.links ? MAPKIT.legendLinks() : ""), "bottomleft", { wide: true });
       root.querySelectorAll("#v-view button").forEach((b) => b.classList.toggle("on", b.dataset.v === s.view));
       root.querySelectorAll("#v-dir button").forEach((b) => b.classList.toggle("on", b.dataset.d === s.dir));
       root.querySelectorAll("#v-layers .chip").forEach((b) => b.classList.toggle("on", s.layers[b.dataset.l]));
@@ -460,7 +486,8 @@ const AreaPage = {
     const queue = ENGINE.orders().filter((o) => o.area_id === id && !withdrawn(o)).sort((a, b) => a.priority - b.priority || a.request_seq - b.request_seq).map((o) => {
       const r = sim.res[o.id];
       return `<div class="queue-row"><span class="prio p${o.priority}" title="${t("pr" + o.priority)}">${o.priority}</span>
-        <div><b>${esc(title(o))}</b><div class="small muted">${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()}, ${t("pr" + o.priority).toLowerCase()}</div></div>
+        <div><b>${esc(title(o))}</b><div class="small muted">${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()}, ${t("pr" + o.priority).toLowerCase()}</div>
+          ${o.category === "battery" ? "" : `<div class="chips-s">${cableChip(cableFor(o.lat, o.lon, o.area_id))}${accessChip(o)}</div>`}</div>
         <div style="text-align:right"><b>${ENGINE.estRange(r)}</b><br>${pill(STATUS_CLASS[r?.status] || "s-neutral", t(r?.status || "proceeds"))}</div></div>`;
     }).join("") || `<p class="muted">–</p>`;
     const stn = stationFor(id), atStation = stn ? ENGINE.realAreaAt(stn.lat, stn.lon) : null;
@@ -510,7 +537,7 @@ const AreaPage = {
     const bl = [...new Set(ups.flatMap(blockers))];
     return `<dl class="dec">
         <dt>${t("dec_shortfall", { y: peak.y })}</dt><dd><b>${Math.round(at.shortfall)} MW</b> <span class="muted">${t("dec_split", { f: Math.round(at.unmetFormal), e: Math.round(at.unmetEarly) })}</span></dd>
-        <dt>${t("dec_projects")}</dt><dd>${waiting.length ? waiting.map((o) => `${esc(title(o))} <span class="muted">(${ENGINE.oMW(o)} MW, ${t(ENGINE.isFormal(o) ? "formal" : "early")}, ${t("from_year", { y: o.year_needed })} → ${ENGINE.estRange(sim.res[o.id])})</span>`).join("<br>") : "–"}</dd>
+        <dt>${t("dec_projects")}</dt><dd>${waiting.length ? waiting.map((o) => `${esc(title(o))} <span class="muted">(${ENGINE.oMW(o)} MW, ${t(ENGINE.isFormal(o) ? "formal" : "early")}, ${t("from_year", { y: o.year_needed })} → ${ENGINE.estRange(sim.res[o.id])})</span> ${cableChip(cableFor(o.lat, o.lon, o.area_id))}`).join("<br>") : "–"}</dd>
         <dt>${t("dec_next")}</dt><dd>${next.act}${d.late ? `<br><span style="color:var(--shortage-tx)">${t("act_measures")}</span>` : ""}</dd>
         <dt>${t("dec_owner")}</dt><dd>${esc(next.owner)}</dd>
         <dt>${t("dec_due")}</dt><dd>${d.late ? `<b style="color:var(--shortage-tx)">${t("too_late")}</b>. ${t("next_moment")}: <b>${t("pmiek")} ${nextPmiek}</b>` : `<b>${t("pmiek")} ${d.pmiek}</b>`} ${pill("s-neutral", t("model_est"))}</dd>
@@ -570,7 +597,7 @@ const SimPage = {
       const r0 = now.res[o.id], r1 = sim.res[o.id], e0 = ENGINE.estRange(r0), e1 = ENGINE.estRange(r1);
       return `<button type="button" class="proj-row ${o.area_id === s.simArea ? "on" : ""}" data-proj="${o.area_id}">
         <span class="pr-main"><b>${esc(title(o))}</b>${o.mine ? ` ${pill("s-neutral", t("role_customer"))}` : ""}${pending(o) ? ` ${pill("s-neutral", t("in_review"))}` : ""}${askedWithdraw(o) ? ` ${pill("s-investigate", t("cancel_pending"))}` : ""}
-          <span class="pr-sub">${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()} · ${esc(ENGINE.area(o.area_id)?.name || "")} · ${t(ENGINE.isFormal(o) ? "formal" : "early")}</span></span>
+          <span class="pr-sub">${ENGINE.oMW(o)} MW ${t(ENGINE.oDir(o)).toLowerCase()} · ${esc(ENGINE.area(o.area_id)?.name || "")} · ${t(ENGINE.isFormal(o) ? "formal" : "early")}</span><span class="chips-s">${cableChip(cableFor(o.lat, o.lon, o.area_id))}${accessChip(o)}</span></span>
         <span class="pr-end">${e0 !== e1 ? `<span class="from">${e0}</span> ` : ""}<b>${e1}</b>${pill(STATUS_CLASS[r1?.status] || "s-neutral", t(r1?.status || "proceeds"))}</span></button>`;
     }).join("");
     return `<div class="side-h" style="padding:18px 0 4px"><h2>${t("sim_projects")} (${list.length})</h2><p class="small muted">${t("sim_projects_lead")}</p></div>

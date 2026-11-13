@@ -5,7 +5,7 @@ const STORE = {
   data: null,
   state: {
     lang: "nl", year: 2029, dir: "afname", view: "today",          // planner map: "today" (capaciteitskaart) | "proj" (register)
-    layers: { areas: true, stations: true, upgrades: true, cables: true, projects: true },
+    layers: { areas: true, stations: true, upgrades: true, cables: true, projects: true, links: true },
     applied: { upgradeYears: {}, cancelled: [], batteries: [], newUpgrades: [], removedUpgrades: [] }, // decisions in force
     draft: { upgradeYears: {}, cancelled: [], batteries: [], newUpgrades: [], removedUpgrades: [] },   // simulator what-if
     userOrders: [], events: {}, simArea: null,
@@ -33,7 +33,7 @@ const DEMO_PLANS = ["p-001", "p-002", "p-005"]; // solar park + business park in
 // Demo orders that show the ACM priority classes (all illustrative)
 const EXTRA_ORDERS = [
   { id: "d-bat", title_nl: "Netbatterij", title_en: "Grid battery", category: "battery", mw_offtake: 0, mw_feed_in: 0, mw_flex: 15, lat: 52.70, lon: 6.84, year_needed: 2027, maturity: "permit", party: "Demo" },
-  { id: "d-hos", title_nl: "Uitbreiding ziekenhuis", title_en: "Hospital expansion", category: "hospital", mw_offtake: 4, mw_feed_in: 0, lat: 52.78, lon: 6.89, year_needed: 2028, maturity: "permit", party: "Demo" },
+  { id: "d-hos", title_nl: "Uitbreiding ziekenhuis", title_en: "Hospital expansion", category: "hospital", mw_offtake: 4, mw_feed_in: 0, lat: 52.78, lon: 6.89, year_needed: 2028, maturity: "permit", party: "Demo", access: "bus" },
 ];
 const MINE = ["p-001", "p-005"]; // the demo customer's own projects (a developer: solar park + electrolyser)
 

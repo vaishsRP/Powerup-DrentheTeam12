@@ -229,6 +229,12 @@ const MAPKIT = (() => {
       else m.bindPopup(`<h4>${o[`title_${L_()}`]}</h4><div class="pop-sub">${ENGINE.oMW(o)} MW</div><table>${row("Status", st ? t(st) : "–")}${row(t("expected"), st ? ENGINE.estRange(r) : "–")}</table>`);
     }
   }
+  // project -> station cable: solid green = already there, dashed orange = new cable needed (demo assumption)
+  function cableLine(g, lat, lon, st, ok) {
+    return L.polyline([[lat, lon], [st.lat, st.lon]], { pane: "lines", color: ok ? COL.room : COL.investigate, weight: ok ? 3 : 2.5, dashArray: ok ? null : "6 6", opacity: 0.95, interactive: false }).addTo(g);
+  }
+  const legendLinks = () => `<section><b>${t("l_links")}</b><div><span class="ln" style="border-color:${COL.room};border-top-width:3px"></span>${t("cable_ok_s")}</div>` +
+    `<div><span class="ln" style="border-color:${COL.investigate};border-top-style:dashed"></span>${t("cable_new_leg")}</div><div class="q">${t("demo_assume")}</div></section>`;
   function pin(g, lat, lon, html) {
     const m = L.marker([lat, lon], { pane: "points", zIndexOffset: 1000, icon: L.divIcon({ className: "pin", html: `<i></i>${BRAND_PIN}`, iconSize: [0, 0] }) }).addTo(g);
     if (html) m.bindTooltip(html, { permanent: true, direction: "top", offset: [0, -38], className: "lbl" });
@@ -273,5 +279,5 @@ const MAPKIT = (() => {
     `<div><span class="ln" style="border-color:${COL.brown};border-top-style:dotted"></span>${t("underground")}</div>` +
     `<div><span class="ln" style="border-color:${COL.blue};border-top-style:dashed"></span>${t("planned")}</div></section>`;
 
-  return { COL, CODE, DRENTHE, BRAND_PIN, create, drawRealAreas, drawProjAreas, drawStations, drawUpgrades, drawLines, drawOrders, pin, label, legend, legendReal, legendProj, legendInfra, lineStatus, realPopup };
+  return { COL, CODE, DRENTHE, BRAND_PIN, create, drawRealAreas, drawProjAreas, drawStations, drawUpgrades, drawLines, drawOrders, cableLine, legendLinks, pin, label, legend, legendReal, legendProj, legendInfra, lineStatus, realPopup };
 })();
