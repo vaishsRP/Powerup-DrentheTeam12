@@ -36,7 +36,7 @@ const TEXT = {
     projects_title: "Mijn projecten", projects_lead: "Alle aanvragen van uw organisatie op één plek. Klik op een project voor de tijdlijn en de volgende stap.",
     projects_empty: "U heeft nog geen projecten. Dien een aanvraag in om te zien wanneer u kunt aansluiten.",
     expected: "Verwachte aansluiting", waiting_for: "Wacht op", next_step: "Volgende stap", area: "Netgebied",
-    back_projects: "Mijn projecten", location_status: "Uw locatie op de capaciteitskaart", queue: "Wachtrij", requests: "aanvragen",
+    back_projects: "Mijn projecten", location_status: "Uw locatie op de capaciteitskaart", queue: "Wachtrij", requests: "aanvragen", pending: "In behandeling", // NL?
     tennet_solved: "TenneT verwacht ruimte in", history: "Wat er gebeurde en waarom", sooner: "Sneller aansluiten",
     sooner_lead: "Berekend met dezelfde wachtrij en netuitbreidingen als uw inschatting.", no_gain: "geen winst",
     request_option: "Bespreken met netbeheerder", option_requested: "Gesprek aangevraagd over",
@@ -159,7 +159,7 @@ const TEXT = {
     projects_title: "My projects", projects_lead: "All your organisation's requests in one place. Open a project for its timeline and next step.",
     projects_empty: "You have no projects yet. Submit a request to see when you can connect.",
     expected: "Expected connection", waiting_for: "Waiting for", next_step: "Next step", area: "Grid area",
-    back_projects: "My projects", location_status: "Your location on the capacity map", queue: "Queue", requests: "requests",
+    back_projects: "My projects", location_status: "Your location on the capacity map", queue: "Queue", requests: "requests", pending: "Being processed",
     tennet_solved: "TenneT expects room in", history: "What happened and why", sooner: "Connect sooner",
     sooner_lead: "Calculated with the same queue and grid upgrades as your estimate.", no_gain: "no gain",
     request_option: "Discuss with grid operator", option_requested: "Meeting requested about",

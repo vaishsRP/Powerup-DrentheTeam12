@@ -184,7 +184,7 @@ const ProjectPage = {
               <div><b>${cableText(cableFor(o.lat, o.lon, o.area_id), true)}</b><span>${t("cable")} (${t("demo_assume")})</span></div>
               <div><b>${t("acc_" + (o.access || "road"))}</b><span>${t("access")}</span></div>
               ${ra ? `<div><b>${pill(CODE_CLASS[code], t("cap" + code))}</b><span>${t("location_status")}: ${esc(ra.name)}</span></div>
-              <div><b>${ra[`queue_${dir}_mw`] != null ? `${(+ra[`queue_${dir}_mw`]).toFixed(1)} MW` : "–"}</b><span>${t("queue")}, ${ra[`requests_${dir}`] ?? 0} ${t("requests")}</span></div>` : ""}
+              <div><b>${ra[`queue_${dir}_mw`] != null ? `${(+ra[`queue_${dir}_mw`]).toFixed(1)} MW` : "–"}</b><span>${t(code >= 2 ? "queue" : "pending")}, ${ra[`requests_${dir}`] ?? 0} ${t("requests")}</span></div>` : ""}
             </div>
           </div>
           <div class="panel panel-grey"><h2>${icon("list-checks")} ${t("next_step")}</h2><p>${nextOwner(o).text}</p><p class="who">${t("who")}: <b>${nextOwner(o).who}</b></p></div>
@@ -496,7 +496,7 @@ const AreaPage = {
     }));
     const seen = new Set(), realRows = realHere.filter((f) => !seen.has(f.properties.name) && seen.add(f.properties.name)).map((f) => {
       const p = f.properties, c = ENGINE.ckCode(p, s.dir), q = p[`queue_${s.dir}_mw`];
-      return `<div class="queue-row" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(p.name)}</b><div class="small muted">${t("queue")} ${q != null ? (+q).toFixed(1) : "–"} MW, ${p[`requests_${s.dir}`] ?? 0} ${t("requests")}</div></div>${pill(CODE_CLASS[c], t("cap" + c))}</div>`;
+      return `<div class="queue-row" style="grid-template-columns:minmax(0,1fr) auto"><div><b>${esc(p.name)}</b><div class="small muted">${t(c >= 2 ? "queue" : "pending")}: ${q != null ? (+q).toFixed(1) : "–"} MW, ${p[`requests_${s.dir}`] ?? 0} ${t("requests")}</div></div>${pill(CODE_CLASS[c], t("cap" + c))}</div>`;
     }).join("");
     return `<div class="page">
       <a class="back" href="#/planner">${icon("arrow-left", 16)} ${t("back_overview")}</a>
