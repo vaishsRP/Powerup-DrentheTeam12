@@ -1,7 +1,7 @@
-# Regionale maatregelkaart: Team 12, PowerUp Drenthe hackathon
+# NetWijzer (Regionale maatregelkaart): Team 12, PowerUp Drenthe hackathon
 
-> **Status (Thu 12 Nov, evening):** the v2 app in `app/` is the demo surface: customer journey, planner overview, area detail and simulator, with real capacity-map and TenneT grid data.
-> Run `python -m http.server 8000` in the repo root and open **http://localhost:8000/app/**. The old prototype is still available at `http://localhost:8000/?legacy=1`.
+> **Status (Fri 13 Nov, midday):** the app is called **NetWijzer** (*Net een stukje wijzer.*) and lives in `app/`: a customer side and a planner side on one shared register, with real capacity-map and TenneT grid data. Feature freeze has passed; only bug fixes from here.
+> Run `python -m http.server 8000` in the repo root and open **http://localhost:8000/app/**. Online (once GitHub Pages is switched on for `main` / root): https://vaishsrp.github.io/Powerup-DrentheTeam12/app/. The old prototype is still available at `http://localhost:8000/?legacy=1`.
 > Read this file first, then [`docs/PLAN.md`](docs/PLAN.md) and [`docs/CONTRACT.md`](docs/CONTRACT.md). Claude Code users: your Claude reads [`CLAUDE.md`](CLAUDE.md) automatically.
 
 ## The hackathon in 30 seconds
@@ -30,21 +30,43 @@
 
 The organisers prefer a **working prototype** to slides.
 
-> ⚠️ **Direction update (Thu 12:56):** customer-facing first. One register, two views: (1) a **customer project planning map** ("Can I build here? When can I connect? What's my status and next step?") and (2) the **planning view** below, fed by the same data. See [`docs/PLAN.md` §0](docs/PLAN.md).
+## What NetWijzer is
 
-## Our idea (proposed)
+**One shared register of energy plans, with two views of the same data: customers see where they stand, planners see where the grid will jam and what has to be decided by when.**
 
-**A shared register of everyone's energy plans, a "one form", that tells the region where the grid will jam, which measure helps, and by when someone must decide.**
+### The problems it addresses
 
-```
-1. COLLECT  → municipalities, province, companies, ProRail, water boards and grid operators submit plans in one standard form
-2. SEE      → map by year: where and when each grid area runs out of room, and which plans cause it
-3. DIAGNOSE → click an area: its plans, its load over the years, and the 24-hour peak-day curve
-4. TEST     → apply a measure (shift timing, battery, pair solar with demand, time-block contract) and watch the curve and colour change
-5. OUTPUT   → the regional measures map: per area the smartest measure, its effect, and the decision deadline for the pMIEK
-```
+1. Customers wait years for a grid connection and don't know when or why.
+2. Customers can't see what a grid upgrade or a delay means for their own project.
+3. Planners can't see at a glance which areas run out of grid room, and in which year.
+4. Planners decide on grid upgrades without seeing which projects depend on them.
+5. Planners can't quickly test what a delay, a battery or a new upgrade would change.
+6. Demand, supply and the infrastructure in between (cables, access to the site) are looked at separately.
 
-The **visible part is a dashboard** (based on the teammate mockup: map on the left, panel on the right, tabs *Plannen / Belasting / Scenario's*). The **real product is the shared intake format**. That is TenneT's literal question.
+### Customer side (*Klant*)
+
+| Page | What it does |
+|---|---|
+| **Mijn projecten** | All the organisation's requests: preferred start, expected connection (or *In beoordeling*), status, next step and who takes it. Small fixed map. |
+| **Project page** | Expected connection with the reason (*Wacht op …*), location, grid operator, preferred start, priority class (ACM), cable to the station, site access, real capacity-map status and queue, ways to connect sooner (battery, flexible contract, cable pooling), timeline of every change and why, and *Aanvraag intrekken*. Map centred on the project, zoom only, no grid-operator labels. |
+| **Nieuwe aanvraag** | Name, type, MW, year and phase; click the map (zoom and pan inside Drenthe) for the location. Shows the capacity-map status there, whether a cable to the station is already there, and asks how the site is reached. **No instant estimate:** an expert at the grid operator reviews the request first. |
+
+### Planner side (*Planner*)
+
+| Page | What it does |
+|---|---|
+| **Overzicht** | Map of Drenthe: *Vandaag* (real capaciteitskaart) or *Projectie* for a chosen year (drawn on the same real shapes, starting from today's status). Layers: substations, grid upgrades, TenneT HV grid, projects, cable to station. Right column: key figures (incl. MW that doesn't fit, formal vs plans), *Verzoeken om in te trekken*, *Nieuwe aanvragen te beoordelen* (confirm and send the estimate), and the areas that need attention. |
+| **Area page** | Chart and year table of connected load, capacity and demand that doesn't fit (formal requests vs early-stage plans) per direction; *Besluit nodig*: biggest shortfall, projects waiting on it, next action and owner, decision due (marked *Modelschatting*), what holds it up (from the IP2026 notes); grid upgrades and the queue in priority order. |
+| **Simulator** | Pick an area (or a project from the list for one area or all of Drenthe) and change only the upgrades that matter: year selector, *Niet uitvoeren*, or a *Nieuwe netuitbreiding*; place a battery of any size; withdraw a request. The right side shows every project's date before and after, with the reason. *Besluit vastleggen en klanten informeren* writes the change into each affected customer's timeline. |
+
+Planner maps zoom and pan inside Drenthe; customer maps don't move. Information appears on click, not on hover. Dutch is the default, with an EN toggle.
+
+### What is real and what is demo
+
+- **Real:** capaciteitskaart status and queues per supply area (Netbeheer Nederland), TenneT HV lines and stations, grid upgrades with desired and feasible years (Enexis investment plan 2026), CBS/PDOK borders. Sources in [`data/README.md`](data/README.md) and [`docs/RESEARCH.md`](docs/RESEARCH.md).
+- **Demo (labelled in the app):** all projects and customers, MW per station area (2026 loads calibrated to the real status pattern by `scripts/calibrate_areas.py`), upgrade sizes in MW, battery effects, and the cable rule (a project within 2 km of its station counts as cabled; *demo-aanname*).
+
+The original "one form" idea is still the core: the **real product is the shared intake format** (the plan card in [`docs/DATA-SCHEMA.md`](docs/DATA-SCHEMA.md)). That is TenneT's literal question.
 
 **Why it isn't a copy of existing tools:** the national capacity map (capaciteitskaart) shows *today*. ETM and TNO's REV *calculate* futures. What's missing is the **front door**: one shared, machine-readable, always-current plan register wired into the province's pMIEK → grid investment plan cycle. Today these plans travel as PDFs every two years. Details and sources are in [`docs/RESEARCH.md`](docs/RESEARCH.md).
 
@@ -67,10 +89,10 @@ docs/PLAN.md         ← full plan: scope, features, architecture, timeline, tas
 docs/RESEARCH.md     ← ground-reality research with sources (what exists, pain points, instruments, data)
 docs/DATA-SCHEMA.md  ← the "plan card": the shared intake format
 docs/CONTRACT.md     ← how the app fits together: state, engine, data files, who owns which file
-app/                 the v2 demo app (multi-page, plain JS + Leaflet + Chart.js)
+app/                 NetWijzer, the demo app (multi-page hash router, plain JS + Leaflet + Chart.js, no build step)
 index.html, css/, js/  old prototype (legacy; /?legacy=1)
-scripts/             ← Python data pipeline (demo data, real capaciteitskaart fetch)
-data/                ← real open data (municipality borders, TenneT substations); data/app/ = app data
+scripts/             ← Python data pipeline (demo data, real capaciteitskaart fetch, calibration, supply-area gaps)
+data/                ← real open data (data/real/, municipality borders, TenneT substations); data/app/ = app data
 ```
 
 ## Run the app
@@ -78,7 +100,11 @@ data/                ← real open data (municipality borders, TenneT substation
 ```
 python -m http.server 8000      # in the repo root, then open http://localhost:8000/app/
 python scripts/build_demo_data.py   # rebuild data/app/ (needs: pip install shapely scipy numpy)
+python scripts/calibrate_areas.py   # then calibrate the 2026 loads to the real capaciteitskaart status
+python scripts/build_supply_gaps.py # parts of Drenthe without a supply area (drawn grey)
 ```
+
+The demo remembers clicks (decisions, new requests, withdrawals) in the browser. **Over → Demo terugzetten** starts fresh.
 
 The v2 app lives in `app/`. The root `index.html`, `css/` and `js/` are the old prototype; `/` redirects to `/app/`, and `/?legacy=1` opens the old app.
 
