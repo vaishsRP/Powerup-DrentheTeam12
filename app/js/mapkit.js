@@ -143,9 +143,31 @@ const MAPKIT = (() => {
           l.bindPopup(`<h4>${f.properties.name}</h4><div class="pop-sub">${ENGINE.area(aid).name}</div><table>${row(`${t("view_proj")} ${year}`, t("cap" + projCode(sim, f, dir, year)))}${row(`${t("peak")} / ${t("capacity")}`, `${Math.round(s.load)} / ${Math.round(s.cap)} MW`)}</table>`);
         }
       } }).addTo(g);
-    // the station area that a click selects (simulator)
-    const sel = opts.selected && STORE.data.areas.features.find((f) => f.properties.id === opts.selected);
-    if (sel) L.geoJSON(sel, { pane: "lines", interactive: false, style: { color: COL.navy, weight: 3, fill: false } }).addTo(g);
+    // the station area that a click selects (simulator): outline the real shapes that belong to it,
+    // drawing only their outer edges so it reads as one region; fall back to the simplified cell
+    if (opts.selected) {
+      const members = fc.features.filter((f) => projArea(f) === opts.selected);
+      const segs = members.length ? outerEdges(members) : [];
+      if (segs.length) L.polyline(segs, { pane: "lines", interactive: false, color: COL.navy, weight: 3, lineJoin: "round" }).addTo(g);
+      else {
+        const cell = STORE.data.areas.features.find((f) => f.properties.id === opts.selected);
+        if (cell) L.geoJSON(cell, { pane: "lines", interactive: false, style: { color: COL.navy, weight: 3, fill: false } }).addTo(g);
+      }
+    }
+  }
+  // edges that belong to only one of the given shapes = the outline of their union
+  function outerEdges(features) {
+    const k = (p) => p[0].toFixed(5) + "," + p[1].toFixed(5), seen = new Map();
+    for (const f of features) {
+      const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+      for (const poly of polys) for (const ring of poly) for (let i = 1; i < ring.length; i++) {
+        const a = ring[i - 1], b = ring[i], ka = k(a), kb = k(b);
+        if (ka === kb) continue;
+        const key = ka < kb ? ka + "|" + kb : kb + "|" + ka, e = seen.get(key);
+        if (e) e.n++; else seen.set(key, { n: 1, ll: [[a[1], a[0]], [b[1], b[0]]] });
+      }
+    }
+    return [...seen.values()].filter((e) => e.n === 1).map((e) => e.ll);
   }
   // fallback without the real shapes: the simplified station areas themselves
   function drawProjCells(g, sim, dir, year, opts = {}) {
